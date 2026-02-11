@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /actions/
+Disallow: /config/
+Disallow: /classes/
+Disallow: /vendor/
+Disallow: /employer/
+Disallow: /employee/
+Disallow: /uploads/
+
+Sitemap: https://tiptopvacancies.com/sitemap.xml

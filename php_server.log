@@ -1,0 +1,30 @@
+[Sat Jan 24 05:05:24 2026] PHP 8.3.6 Development Server (http://0.0.0.0:3000) started
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41636 Accepted
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41636 [200]: GET /index.php
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41636 Closing
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41648 Accepted
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41648 [200]: GET /layout/custom.css
+[Sat Jan 24 05:06:17 2026] 127.0.0.1:41648 Closing
+[Sat Jan 24 05:06:18 2026] 127.0.0.1:41662 Accepted
+[Sat Jan 24 05:06:18 2026] 127.0.0.1:41662 [200]: GET /fetch_jobs.php?category=&q=&district_id=
+[Sat Jan 24 05:06:18 2026] 127.0.0.1:41662 Closing
+[Sat Jan 24 07:01:48 2026] 127.0.0.1:42366 Accepted
+[Sat Jan 24 07:01:48 2026] PHP Parse error:  syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:01:48 2026] 127.0.0.1:42366 [500]: GET /login.php - syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:01:48 2026] 127.0.0.1:42366 Closing
+[Sat Jan 24 07:02:18 2026] 127.0.0.1:44406 Accepted
+[Sat Jan 24 07:02:18 2026] PHP Parse error:  syntax error, unexpected identifier "layout" in /app/register.php on line 29
+[Sat Jan 24 07:02:18 2026] 127.0.0.1:44406 [500]: GET /register.php - syntax error, unexpected identifier "layout" in /app/register.php on line 29
+[Sat Jan 24 07:02:18 2026] 127.0.0.1:44406 Closing
+[Sat Jan 24 07:05:35 2026] 127.0.0.1:57744 Accepted
+[Sat Jan 24 07:05:35 2026] PHP Parse error:  syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:05:35 2026] 127.0.0.1:57744 [500]: GET /login.php - syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:05:35 2026] 127.0.0.1:57744 Closing
+[Sat Jan 24 07:06:05 2026] 127.0.0.1:39646 Accepted
+[Sat Jan 24 07:06:05 2026] PHP Parse error:  syntax error, unexpected identifier "layout" in /app/register.php on line 29
+[Sat Jan 24 07:06:05 2026] 127.0.0.1:39646 [500]: GET /register.php - syntax error, unexpected identifier "layout" in /app/register.php on line 29
+[Sat Jan 24 07:06:05 2026] 127.0.0.1:39646 Closing
+[Sat Jan 24 07:08:39 2026] 127.0.0.1:60828 Accepted
+[Sat Jan 24 07:08:39 2026] PHP Parse error:  syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:08:39 2026] 127.0.0.1:60828 [500]: GET /login.php - syntax error, unexpected identifier "layout" in /app/login.php on line 32
+[Sat Jan 24 07:08:39 2026] 127.0.0.1:60828 Closing
