@@ -21,13 +21,17 @@ try {
     if (!$job) { die("Vacancy no longer active."); }
 
     // 2. Fetch Candidate Profile Snapshot (To show what they are submitting)
-    $stmt = $pdo->prepare("SELECT p.employee_full_name, p.cv_blob, p.id as seeker_id 
+    // Updated to check for both BLOB (employee_cv) and Path (cv_path)
+    $stmt = $pdo->prepare("SELECT p.employee_full_name, p.employee_cv, p.cv_path, p.id as seeker_id
                            FROM employee_profile_seeker p 
                            WHERE p.link_to_user = ?");
     $stmt->execute([$user_id]);
     $seeker = $stmt->fetch();
 
-    if (!$seeker || empty($seeker['cv_blob'])) {
+    // Allow if either BLOB or Path exists
+    $has_cv = $seeker && (!empty($seeker['employee_cv']) || !empty($seeker['cv_path']));
+
+    if (!$has_cv) {
         header("Location: profile_setup.php?error=no_cv"); exit();
     }
 
@@ -36,7 +40,7 @@ try {
     $check->execute([$job_id, $seeker['seeker_id']]);
     $already_applied = $check->fetch();
 
-} catch (PDOException $e) { die("System Error"); }
+} catch (PDOException $e) { die("System Error: " . $e->getMessage()); }
 ?>
 
 <!DOCTYPE html>
@@ -86,7 +90,7 @@ try {
                         </div>
 
                         <form action="actions/process_application.php" method="POST">
-                            <input type="hidden" name="job_id" value="<?= $job_id ?>">
+                            <input type="hidden" name="job_ad_link" value="<?= $job_id ?>">
                             <input type="hidden" name="seeker_id" value="<?= $seeker['seeker_id'] ?>">
 
                             <div class="mb-4">
