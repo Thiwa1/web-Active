@@ -44,11 +44,18 @@ try {
     $stmt->execute($params);
     $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // --- DESKTOP OUTPUT ---
+    $desktop_html = '';
+    $mobile_html = '';
+
     if (empty($jobs)) {
-        echo '<tr><td colspan="8" class="text-center py-5">
+        $desktop_html = '<tr><td colspan="8" class="text-center py-5">
                 <div class="text-muted"><i class="fas fa-search fa-2x mb-3"></i><br>No Jobs Found</div>
               </td></tr>';
+        $mobile_html = '<div class="mobile-no-jobs">
+                <i class="fas fa-search"></i>
+                <h4>No Jobs Found</h4>
+                <p>Try adjusting your search criteria</p>
+              </div>';
     } else {
         $counter = 1;
         foreach ($jobs as $job) {
@@ -56,24 +63,52 @@ try {
             $location = htmlspecialchars($job['City']) . ", " . htmlspecialchars($job['District_name']);
             $initial = strtoupper(substr($company, 0, 1));
             
-            // Logo Logic
-            $logoHtml = '<div class="company-icon">' . $initial . '</div>';
+            // --- LOGO LOGIC ---
             $cleanLogoPath = ltrim($job['logo_path'] ?? '', '/');
-            if (!empty($cleanLogoPath) && file_exists($cleanLogoPath)) {
-                $logoHtml = '<img src="' . htmlspecialchars($cleanLogoPath) . '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;">';
+            // Use __DIR__ to check file existence reliably
+            $logoAbsPath = __DIR__ . '/' . $cleanLogoPath;
+
+            if (!empty($cleanLogoPath) && file_exists($logoAbsPath)) {
+                $imgTag = '<img src="' . htmlspecialchars($cleanLogoPath) . '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;">';
+                $mobileImgTag = '<img src="' . htmlspecialchars($cleanLogoPath) . '" class="mobile-company-icon" style="padding:0; object-fit:cover;">';
+
+                $logoHtml = $imgTag;
+                $mobileLogoHtml = $mobileImgTag;
             } elseif (!empty($job['employer_logo'])) {
-                $logoHtml = '<img src="data:image/jpeg;base64,' . base64_encode($job['employer_logo']) . '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;">';
+                $base64Logo = base64_encode($job['employer_logo']);
+                $imgTag = '<img src="data:image/jpeg;base64,' . $base64Logo . '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;">';
+                $mobileImgTag = '<img src="data:image/jpeg;base64,' . $base64Logo . '" class="mobile-company-icon" style="padding:0; object-fit:cover;">';
+
+                $logoHtml = $imgTag;
+                $mobileLogoHtml = $mobileImgTag;
+            } else {
+                 $logoHtml = '<div class="company-icon">' . $initial . '</div>';
+                 $mobileLogoHtml = '<div class="mobile-company-icon">' . $initial . '</div>';
             }
 
-            // Date Badges
+            // --- BANNER LOGIC (Mobile only mainly, but good to have) ---
+            $banner = '';
+            $cleanImgPath = ltrim($job['img_path'] ?? '', '/');
+            $imgAbsPath = __DIR__ . '/' . $cleanImgPath;
+
+            if(!empty($cleanImgPath) && file_exists($imgAbsPath)) {
+                $banner = '<div style="height: 140px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
+                            <img src="' . htmlspecialchars($cleanImgPath) . '" class="w-100 h-100" style="object-fit: cover;">
+                           </div>';
+            } elseif(!empty($job['Img'])) {
+                 $banner = '<div style="height: 140px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
+                            <img src="data:image/jpeg;base64,' . base64_encode($job['Img']) . '" class="w-100 h-100" style="object-fit: cover;">
+                           </div>';
+            }
+
+            // --- DATE BADGES ---
             $today = date('Y-m-d');
             $closing = $job['Closing_date'];
             $isOpen = ($closing >= $today);
-            $statusBadge = $isOpen
-                ? '<span class="date-badge date-open">Open</span>'
-                : '<span class="date-badge date-close">Closed</span>';
+            // $statusBadge is not used in current template but logic is here
 
-            echo '<tr>
+            // --- DESKTOP ROW ---
+            $desktop_html .= '<tr>
                 <td class="cell-number">' . $counter . '</td>
                 <td class="cell-position"><strong>' . htmlspecialchars($job['Position']) . '</strong></td>
                 <td class="cell-company">
@@ -90,43 +125,9 @@ try {
                     <button class="btn-view-excel view-job" data-id="' . $job['id'] . '">View</button>
                 </td>
             </tr>';
-            $counter++;
-        }
-    }
 
-    // SPLIT MARKER
-    echo "###SPLIT###";
-
-    // --- MOBILE OUTPUT ---
-    if (!empty($jobs)) {
-        foreach ($jobs as $job) {
-            $company = htmlspecialchars($job['Company'] ?? 'N/A');
-            $initial = strtoupper(substr($company, 0, 1));
-            $location = htmlspecialchars($job['City']) . ", " . htmlspecialchars($job['District_name']);
-
-            // Banner Image Logic
-            $banner = '';
-            $cleanImgPath = ltrim($job['img_path'] ?? '', '/');
-            if(!empty($cleanImgPath) && file_exists($cleanImgPath)) {
-                $banner = '<div style="height: 140px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
-                            <img src="' . htmlspecialchars($cleanImgPath) . '" class="w-100 h-100" style="object-fit: cover;">
-                           </div>';
-            } elseif(!empty($job['Img'])) {
-                 $banner = '<div style="height: 140px; overflow: hidden; border-radius: 12px; margin-bottom: 15px;">
-                            <img src="data:image/jpeg;base64,' . base64_encode($job['Img']) . '" class="w-100 h-100" style="object-fit: cover;">
-                           </div>';
-            }
-
-            // Mobile Logo Logic
-            $logoHtml = '<div class="mobile-company-icon">' . $initial . '</div>';
-            $cleanLogoPath = ltrim($job['logo_path'] ?? '', '/');
-            if (!empty($cleanLogoPath) && file_exists($cleanLogoPath)) {
-                $logoHtml = '<img src="' . htmlspecialchars($cleanLogoPath) . '" class="mobile-company-icon" style="padding:0; object-fit:cover;">';
-            } elseif (!empty($job['employer_logo'])) {
-                $logoHtml = '<img src="data:image/jpeg;base64,' . base64_encode($job['employer_logo']) . '" class="mobile-company-icon" style="padding:0; object-fit:cover;">';
-            }
-
-            echo '<div class="mobile-card">
+            // --- MOBILE CARD ---
+            $mobile_html .= '<div class="mobile-card">
                     ' . $banner . '
 
                     <div class="mobile-card-header">
@@ -135,7 +136,7 @@ try {
                     </div>
 
                     <div class="mobile-company-info">
-                        ' . $logoHtml . '
+                        ' . $mobileLogoHtml . '
                         <div class="mobile-company-details">
                             <div class="mobile-company-name">' . $company . '</div>
                             <div class="mobile-job-category">' . htmlspecialchars($job['Job_category']) . '</div>
@@ -171,14 +172,14 @@ try {
                         </button>
                     </div>
                   </div>';
+
+            $counter++;
         }
-    } else {
-        echo '<div class="mobile-no-jobs">
-                <i class="fas fa-search"></i>
-                <h4>No Jobs Found</h4>
-                <p>Try adjusting your search criteria</p>
-              </div>';
     }
+
+    echo $desktop_html;
+    echo "###SPLIT###";
+    echo $mobile_html;
 
 } catch (Exception $e) {
     // Return error formatted for both splits

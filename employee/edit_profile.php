@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/config.php';
+require_once '../config/upload_helper.php';
 
 // 1. Configuration & Security
 $site_name = "JobQuest Pro"; 
@@ -12,6 +13,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Employee') {
 
 $user_id = $_SESSION['user_id'];
 $success = false;
+$error = '';
 
 // 2. Fetch Current Profile Data
 try {
@@ -41,27 +43,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 WHERE link_to_user = ?";
         $pdo->prepare($sql)->execute([$full_name, $initial_name, $user_id]);
 
-        // Handle BLOB Uploads (Images and Documents)
-        $file_map = [
-            'employee_cv' => 'cv_file',
-            'employee_cover_letter' => 'cl_file',
-            'employee_img' => 'img_file'
+        // Handle File Uploads (Paths)
+        $path_map = [
+            'cv_path' => ['input' => 'cv_file', 'types' => ['pdf']],
+            'cl_path' => ['input' => 'cl_file', 'types' => ['pdf', 'doc', 'docx']],
+            'img_path' => ['input' => 'img_file', 'types' => ['jpg', 'jpeg', 'png']]
         ];
 
-        foreach ($file_map as $column => $input_name) {
-            if (!empty($_FILES[$input_name]['tmp_name'])) {
-                $content = file_get_contents($_FILES[$input_name]['tmp_name']);
-                $stmt = $pdo->prepare("UPDATE employee_profile_seeker SET $column = ? WHERE link_to_user = ?");
-                $stmt->bindParam(1, $content, PDO::PARAM_LOB);
-                $stmt->bindParam(2, $user_id);
-                $stmt->execute();
+        foreach ($path_map as $column => $config) {
+            $input = $config['input'];
+            if (!empty($_FILES[$input]['tmp_name'])) {
+                try {
+                    $path = uploadImage($_FILES[$input], '../uploads/seekers/', $config['types']);
+                    // Remove leading ../ for DB storage so it is relative to web root
+                    $cleanPath = str_replace('../', '', $path);
+
+                    $stmt = $pdo->prepare("UPDATE employee_profile_seeker SET $column = ? WHERE link_to_user = ?");
+                    $stmt->execute([$cleanPath, $user_id]);
+
+                } catch (Exception $e) {
+                     $error .= "Error uploading " . $column . ": " . $e->getMessage() . "<br>";
+                }
             }
         }
         
-        header("Location: profile.php?success=1");
-        exit();
+        if (empty($error)) {
+            header("Location: profile.php?success=1");
+            exit();
+        }
+
     } catch (PDOException $e) {
-        $error = "Error updating profile: " . $e->getMessage();
+        $error .= "Error updating profile: " . $e->getMessage();
     }
 }
 ?>
@@ -114,16 +126,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     <?php endif; ?>
 
+    <?php if(!empty($error)): ?>
+        <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4">
+            <i class="fas fa-exclamation-circle me-2"></i> <?= $error ?>
+        </div>
+    <?php endif; ?>
+
     <form action="" method="POST" enctype="multipart/form-data">
         <div class="row g-4">
             <div class="col-lg-4">
                 <div class="card glass-card p-4 text-center sticky-sidebar">
                     <div class="profile-pic-wrapper mb-4">
-                        <?php if ($profile['employee_img']): ?>
-                            <img src="data:image/jpeg;base64,<?= base64_encode($profile['employee_img']) ?>" class="profile-pic" id="img-preview">
-                        <?php else: ?>
-                            <img src="https://ui-avatars.com/api/?name=<?= urlencode($profile['employee_full_name']) ?>&background=random&size=200" class="profile-pic" id="img-preview">
-                        <?php endif; ?>
+                        <?php
+                            // Prioritize Path over BLOB
+                            $imgSrc = "https://ui-avatars.com/api/?name=" . urlencode($profile['employee_full_name']) . "&background=random&size=200";
+                            if (!empty($profile['img_path']) && file_exists('../' . $profile['img_path'])) {
+                                $imgSrc = '../' . htmlspecialchars($profile['img_path']);
+                            } elseif (!empty($profile['employee_img'])) {
+                                $imgSrc = "data:image/jpeg;base64," . base64_encode($profile['employee_img']);
+                            }
+                        ?>
+                        <img src="<?= $imgSrc ?>" class="profile-pic" id="img-preview">
                         
                         <label for="img_file" class="edit-badge">
                             <i class="fas fa-camera"></i>
@@ -136,12 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     
                     <div class="d-flex justify-content-around bg-light rounded-4 p-3">
                         <div>
-                            <span class="d-block fw-bold small"><?= $profile['employee_cv'] ? 'Yes' : 'No' ?></span>
+                            <span class="d-block fw-bold small"><?= (!empty($profile['cv_path']) || !empty($profile['employee_cv'])) ? 'Yes' : 'No' ?></span>
                             <span class="text-muted x-small" style="font-size:0.7rem;">CV Attached</span>
                         </div>
                         <div class="border-start"></div>
                         <div>
-                            <span class="d-block fw-bold small"><?= $profile['employee_cover_letter'] ? 'Yes' : 'No' ?></span>
+                            <span class="d-block fw-bold small"><?= (!empty($profile['cl_path']) || !empty($profile['employee_cover_letter'])) ? 'Yes' : 'No' ?></span>
                             <span class="text-muted x-small" style="font-size:0.7rem;">Cover Letter</span>
                         </div>
                     </div>
@@ -170,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <i class="fas fa-file-pdf fa-2x mb-2 text-danger"></i>
                                 <p class="small text-muted mb-0">Click to upload PDF</p>
                                 <input type="file" name="cv_file" id="cv_file" hidden>
-                                <?php if ($profile['employee_cv']): ?>
+                                <?php if (!empty($profile['cv_path']) || !empty($profile['employee_cv'])): ?>
                                     <div class="badge bg-success-subtle text-success mt-2">Document Stored</div>
                                 <?php endif; ?>
                             </div>
@@ -181,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <i class="fas fa-file-word fa-2x mb-2 text-primary"></i>
                                 <p class="small text-muted mb-0">Click to upload Document</p>
                                 <input type="file" name="cl_file" id="cl_file" hidden>
-                                <?php if ($profile['employee_cover_letter']): ?>
+                                <?php if (!empty($profile['cl_path']) || !empty($profile['employee_cover_letter'])): ?>
                                     <div class="badge bg-success-subtle text-success mt-2">Document Stored</div>
                                 <?php endif; ?>
                             </div>
