@@ -17,12 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $link_to_emp = $emp['id'];
     
-    // 2. Prepare Vacancy Data (The First Ad)
+    // 2. Prepare Vacancy Data
     $opening     = $_POST['Opening_date'];
     $closing     = $_POST['Closing_date'];
     $industry    = $_POST['Industry'];
     $category    = $_POST['Job_category'];
-    $job_type    = $_POST['job_type'] ?? 'Full Time'; // Default fallback
+    $job_type    = $_POST['job_type'] ?? 'Full Time';
     $role        = $_POST['Job_role'];
     $city        = $_POST['City'];
     $district    = $_POST['District'];
@@ -35,12 +35,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $wa_no        = $_POST['apply_WhatsApp_No'];
     $apply_wa     = !empty($wa_no) ? 1 : 0;
 
-    // Handle Job Banner Image
+    // Handle Job Banner Image (Path + BLOB)
     $img_path = null;
+    $img_blob = null;
+
     if (!empty($_FILES['job_banner']['tmp_name'])) {
         try {
             $raw_path = uploadImage($_FILES['job_banner'], '../uploads/jobs/');
             $img_path = str_replace(['../', '../../'], '', $raw_path);
+            $img_blob = file_get_contents($_FILES['job_banner']['tmp_name']);
         } catch (Exception $e) { die("Image Error: " . $e->getMessage()); }
     }
 
@@ -48,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total_received = (double)$_POST['calculated_total'];
     $unit_count     = (int)$_POST['unit_count']; 
     $payment_slip_path = null;
+    $payment_slip_blob = null;
     
     // Check for Promo Mode
     $is_promo = isset($_POST['is_promo']) && $_POST['is_promo'] == '1';
@@ -56,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $raw_slip = uploadImage($_FILES['payment_slip'], '../uploads/docs/', ['jpg','jpeg','png','pdf']);
             $payment_slip_path = str_replace(['../', '../../'], '', $raw_slip);
+            $payment_slip_blob = file_get_contents($_FILES['payment_slip']['tmp_name']);
         } catch (Exception $e) { die("Slip Error: " . $e->getMessage()); }
     }
 
@@ -64,26 +69,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         // --- STEP A: Insert the Payment Record FIRST ---
-        // This slip covers ALL units purchased in this transaction
         $payment_approval = ($total_received == 0 || $is_promo) ? 1 : 0;
         
         $sqlPay = "INSERT INTO payment_table 
-                   (employer_link, Totaled_received, slip_path, payment_date, Approval) 
-                   VALUES (?, ?, ?, CURDATE(), ?)";
+                   (employer_link, Totaled_received, slip_path, Payment_slip, payment_date, Approval)
+                   VALUES (?, ?, ?, ?, CURDATE(), ?)";
         
         $stmtPay = $pdo->prepare($sqlPay);
-        $stmtPay->execute([$link_to_emp, $total_received, $payment_slip_path, $payment_approval]);
+        $stmtPay->execute([$link_to_emp, $total_received, $payment_slip_path, $payment_slip_blob, $payment_approval]);
         $new_payment_id = $pdo->lastInsertId();
 
         // --- STEP B: Insert the First Ad (The one with details) ---
         $sqlAd = "INSERT INTO advertising_table 
-                  (link_to_employer_profile, Opening_date, Closing_date, Industry, Job_category, job_type, Job_role, img_path, City, job_description, District, Apply_by_email, Apply_by_system, apply_WhatsApp, Apply_by_email_address, apply_WhatsApp_No, Approved)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
+                  (link_to_employer_profile, Opening_date, Closing_date, Industry, Job_category, job_type, Job_role, img_path, Img, City, job_description, District, Apply_by_email, Apply_by_system, apply_WhatsApp, Apply_by_email_address, apply_WhatsApp_No, Approved)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
         
         $stmtAd = $pdo->prepare($sqlAd);
         $stmtAd->execute([
             $link_to_emp, $opening, $closing, $industry, $category, $job_type, $role,
-            $img_path, $city, $description, $district, $apply_email, $apply_system, 
+            $img_path, $img_blob, $city, $description, $district, $apply_email, $apply_system,
             $apply_wa, $email_addr, $wa_no
         ]);
         $first_ad_id = $pdo->lastInsertId();
