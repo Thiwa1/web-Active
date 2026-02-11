@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/config.php';
+require_once '../config/upload_helper.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_SESSION['user_id'];
@@ -20,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $closing     = $_POST['Closing_date'];
     $industry    = $_POST['Industry'];
     $category    = $_POST['Job_category'];
-    $job_type    = $_POST['job_type'] ?? 'Full Time'; // New field
+    $job_type    = $_POST['job_type'] ?? 'Full Time';
     $role        = $_POST['Job_role'];
     $city        = $_POST['City'];
     $district    = $_POST['District'];
@@ -37,20 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 2. Handle Image Update logic
         // We only update the 'Img' column if a new file was actually uploaded
         if (!empty($_FILES['Img']['tmp_name'])) {
-            $img = file_get_contents($_FILES['Img']['tmp_name']);
+            // New logic: Update both Path and BLOB
+            $raw_path = uploadImage($_FILES['Img'], '../uploads/jobs/');
+            $img_path = str_replace(['../', '../../'], '', $raw_path);
+            $img_blob = file_get_contents($_FILES['Img']['tmp_name']);
+
             $sql = "UPDATE advertising_table SET 
                     Opening_date = ?, Closing_date = ?, Industry = ?, Job_category = ?, job_type = ?,
                     Job_role = ?, City = ?, job_description = ?, 
                     District = ?, Apply_by_email = ?, Apply_by_system = ?, 
                     apply_WhatsApp = ?, Apply_by_email_address = ?, 
-                    apply_WhatsApp_No = ?, Img = ?, Approved = 0 
+                    apply_WhatsApp_No = ?, Img = ?, img_path = ?, Approved = 0
                     WHERE id = ? AND link_to_employer_profile = ?";
             
             $stmt = $pdo->prepare($sql);
             $params = [
                 $opening, $closing, $industry, $category, $job_type, $role, $city,
                 $description, $district, $apply_email, $apply_system, 
-                $apply_wa, $email_addr, $wa_no, $img, $job_id, $emp_id
+                $apply_wa, $email_addr, $wa_no, $img_blob, $img_path, $job_id, $emp_id
             ];
         } else {
             // Update without changing the existing image
@@ -75,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: ../employer/manage_jobs.php?msg=Vacancy updated and sent for re-approval");
         exit();
 
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         die("Error: " . $e->getMessage());
     }
 }

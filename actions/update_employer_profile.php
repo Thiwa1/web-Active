@@ -22,13 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Handle Image Uploads
         $logo_path = null;
+        $logo_content = null;
+
         if (!empty($_FILES['employer_logo']['tmp_name'])) {
-            $logo_path = uploadImage($_FILES['employer_logo'], '../uploads/employers/');
+            $raw_path = uploadImage($_FILES['employer_logo'], '../uploads/employers/');
+            $logo_path = str_replace(['../', '../../'], '', $raw_path);
+            $logo_content = file_get_contents($_FILES['employer_logo']['tmp_name']);
         }
 
         $br_path = null;
         if (!empty($_FILES['employer_BR']['tmp_name'])) {
-            $br_path = uploadImage($_FILES['employer_BR'], '../uploads/docs/', ['pdf','jpg','png']);
+            $raw_br = uploadImage($_FILES['employer_BR'], '../uploads/docs/', ['pdf','jpg','png']);
+            $br_path = str_replace(['../', '../../'], '', $raw_br);
+            // $br_content = file_get_contents(...) - BR usually file only now
         }
 
         // Check if profile exists
@@ -43,18 +49,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     employer_mobile_no=?, employer_whatsapp_no=?, employer_about_company=?, employer=? ";
             $params = [$name, $addr1, $addr2, $addr3, $mobile, $whatsapp, $about, $landline];
             
-            if ($logo_path) { $sql .= ", logo_path=?"; $params[] = $logo_path; }
-            if ($br_path) { $sql .= ", br_path=?"; $params[] = $br_path; }
+            if ($logo_path) {
+                $sql .= ", logo_path=?, employer_logo=?";
+                $params[] = $logo_path;
+                $params[] = $logo_content; // BLOB update
+            }
+            if ($br_path) {
+                $sql .= ", br_path=?";
+                $params[] = $br_path;
+            }
             
             $sql .= " WHERE link_to_user=?";
             $params[] = $user_id;
             
             $stmt = $pdo->prepare($sql);
+            // Bind explicitly for BLOB if needed, but PDO executes handle basic strings fine.
+            // For large BLOBs, bindParam is better, but here we assume reasonable size.
+            // Or use bindParam loop. Let's stick to execute() unless issues arise.
             $stmt->execute($params);
         } else {
             // Insert
-            $stmt = $pdo->prepare("INSERT INTO employer_profile (link_to_user, employer_name, employer_address_1, employer_address_2, employer_address_3, employer_mobile_no, employer_whatsapp_no, employer_about_company, employer, logo_path, br_path) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-            $stmt->execute([$user_id, $name, $addr1, $addr2, $addr3, $mobile, $whatsapp, $about, $landline, $logo_path, $br_path]);
+            $stmt = $pdo->prepare("INSERT INTO employer_profile (link_to_user, employer_name, employer_address_1, employer_address_2, employer_address_3, employer_mobile_no, employer_whatsapp_no, employer_about_company, employer, logo_path, br_path, employer_logo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+            $stmt->execute([$user_id, $name, $addr1, $addr2, $addr3, $mobile, $whatsapp, $about, $landline, $logo_path, $br_path, $logo_content]);
         }
 
         header("Location: ../employer/dashboard.php?success=Profile Updated");
