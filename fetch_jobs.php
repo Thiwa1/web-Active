@@ -64,8 +64,13 @@ try {
             $initial = strtoupper(substr($company, 0, 1));
             
             // --- LOGO LOGIC ---
-            $cleanLogoPath = ltrim($job['logo_path'] ?? '', '/');
-            // Use __DIR__ to check file existence reliably
+            // Fix: Strip ../ to ensure path is relative to root (uploads/...)
+            $cleanLogoPath = '';
+            if (!empty($job['logo_path'])) {
+                $cleanLogoPath = str_replace(['../', './'], '', $job['logo_path']);
+            }
+
+            // Use __DIR__ to check file existence reliably from root
             $logoAbsPath = __DIR__ . '/' . $cleanLogoPath;
 
             if (!empty($cleanLogoPath) && file_exists($logoAbsPath)) {
@@ -88,7 +93,11 @@ try {
 
             // --- BANNER LOGIC (Mobile only mainly, but good to have) ---
             $banner = '';
-            $cleanImgPath = ltrim($job['img_path'] ?? '', '/');
+            // Fix: Strip ../ for banner too
+            $cleanImgPath = '';
+            if (!empty($job['img_path'])) {
+                $cleanImgPath = str_replace(['../', './'], '', $job['img_path']);
+            }
             $imgAbsPath = __DIR__ . '/' . $cleanImgPath;
 
             if(!empty($cleanImgPath) && file_exists($imgAbsPath)) {
