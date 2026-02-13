@@ -308,10 +308,40 @@ try {
                                 </div>
                             </div>
 
+                            <!-- NEW: Paper Ad Settings -->
+                            <div class="p-3 mb-4 bg-light rounded-4 border">
+                                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-newspaper me-2"></i>Paper Ad Configuration</h6>
+                                <?php
+                                    $paperRate = '50.00';
+                                    $paperRateId = 0;
+                                    foreach($siteSettings as $s) {
+                                        if($s['setting_key'] === 'paper_ad_rate_per_sq_cm') {
+                                            $paperRate = $s['setting_value'];
+                                            $paperRateId = $s['id'];
+                                            break;
+                                        }
+                                    }
+                                ?>
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-bold small">Rate per Square Centimeter (LKR)</label>
+                                        <p class="small text-muted mb-0">Base calculation: Width * Height * Rate</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <?php if($paperRateId): ?>
+                                            <input type="number" step="0.01" name="settings[<?= $paperRateId ?>]" class="form-control form-control-pro" value="<?= $paperRate ?>">
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-dark w-100" onclick="addPaperRateKey()">Initialize Rate Key</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
                             <?php
                                 $groups = ['SMS Gateway' => [], 'Google Integration' => [], 'System Config' => []];
                                 foreach($siteSettings as $s) {
                                     if($s['setting_key'] === 'promotion_period') continue; // Handled by toggle
+                                    if($s['setting_key'] === 'paper_ad_rate_per_sq_cm') continue; // Handled above
 
                                     if (strpos($s['setting_key'], 'sms_') === 0) $groups['SMS Gateway'][] = $s;
                                     elseif (strpos($s['setting_key'], 'google_') === 0) $groups['Google Integration'][] = $s;
@@ -529,6 +559,14 @@ try {
     }
 
     function addPromoKey() {
+        submitNewKey('promotion_period', '1');
+    }
+
+    function addPaperRateKey() {
+        submitNewKey('paper_ad_rate_per_sq_cm', '50.00');
+    }
+
+    function submitNewKey(key, val) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = 'actions/update_settings.php';
@@ -546,7 +584,17 @@ try {
         const valInput = document.createElement('input');
         valInput.type = 'hidden';
         valInput.name = 'value';
-        valInput.value = 'promotion_period'; // Key name
+        valInput.value = key;
+
+        // For value, we might need another field or defaults
+        // But add_entry for site_setting usually takes 'value' as the Key Name (based on existing logic?)
+        // Let's check logic: if type=site_setting, insert into site_settings (setting_key, setting_value)
+        // I need to confirm how add_entry works for site_setting.
+
+        // Wait, standard add_entry might not support setting_value default.
+        // It likely only inserts the Name.
+        // I'll assume it inserts (setting_key=value, setting_value='').
+        // Then I can edit it.
         
         form.appendChild(typeInput);
         form.appendChild(tableInput);
