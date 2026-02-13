@@ -80,11 +80,11 @@ try {
         </button>
 
         <div class="collapse navbar-collapse" id="navbarContent">
-            <!-- NEW: Paper Ad Link -->
+            <!-- NEW: Paper Ad Link with updated text -->
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item ms-3">
-                    <a class="nav-link fw-bold text-primary" href="<?= $basePath ?>paper_ads.php">
-                        <i class="fas fa-newspaper me-1"></i> Paper Advertising
+                    <a class="nav-link fw-bold" href="<?= $basePath ?>paper_ads.php" style="color: #8B0000;">
+                        <i class="fas fa-newspaper me-1"></i> ඉරිදා ලංකාදීප
                     </a>
                 </li>
             </ul>
