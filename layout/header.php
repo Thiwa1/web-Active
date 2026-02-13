@@ -80,6 +80,15 @@ try {
         </button>
 
         <div class="collapse navbar-collapse" id="navbarContent">
+            <!-- NEW: Paper Ad Link -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item ms-3">
+                    <a class="nav-link fw-bold text-primary" href="<?= $basePath ?>paper_ads.php">
+                        <i class="fas fa-newspaper me-1"></i> Paper Advertising
+                    </a>
+                </li>
+            </ul>
+
             <div class="ms-auto d-flex align-items-center gap-2">
                 <?php if(isset($_SESSION['user_id'])): ?>
                     <div class="dropdown">
