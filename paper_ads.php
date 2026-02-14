@@ -9,19 +9,48 @@ include 'layout/header.php';
 $stmt = $pdo->query("SELECT * FROM system_bank_accounts LIMIT 1");
 $bank = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch Newspapers and Rates
-$papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+// Fetch Newspapers and Rates (Lazy Load Schema if Missing)
+$papers = [];
 $rates = [];
-foreach ($papers as $p) {
-    $r = $pdo->prepare("SELECT * FROM newspaper_rates WHERE newspaper_id = ?");
-    $r->execute([$p['id']]);
-    $rates[$p['id']] = $r->fetchAll(PDO::FETCH_ASSOC);
+
+try {
+    $papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    if ($e->getCode() == '42S02') { // Table not found
+        // Attempt to auto-create schema
+        if (file_exists('setup_newspaper_tables.php')) {
+            ob_start();
+            include 'setup_newspaper_tables.php';
+            ob_end_clean();
+            // Retry
+            try {
+                $papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $ex) {
+                echo "<div class='alert alert-danger'>System Error: Database setup failed. Please run setup_newspaper_tables.php manually.</div>";
+            }
+        } else {
+            echo "<div class='alert alert-danger'>System Configuration Error: Missing table 'newspapers'.</div>";
+        }
+    } else {
+        error_log($e->getMessage());
+    }
+}
+
+if (!empty($papers)) {
+    foreach ($papers as $p) {
+        $r = $pdo->prepare("SELECT * FROM newspaper_rates WHERE newspaper_id = ?");
+        $r->execute([$p['id']]);
+        $rates[$p['id']] = $r->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 
 // Fetch VAT setting
-$stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'paper_ad_vat_percent'");
-$stmt->execute();
-$vatPercent = $stmt->fetchColumn() ?: 18; // Default 18%
+$vatPercent = 18;
+try {
+    $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'paper_ad_vat_percent'");
+    $stmt->execute();
+    $vatPercent = $stmt->fetchColumn() ?: 18;
+} catch (Exception $e) { /* Ignore */ }
 
 // Calculate Next Closing Date
 $nextFriday = date('Y-m-d', strtotime('next Friday'));
