@@ -117,9 +117,26 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Columns</label>
-                                    <input type="number" step="1" name="columns" id="columns" class="form-control" required min="1" value="1" oninput="calculatePrice()">
+                                    <select name="columns" id="columns" class="form-select" required onchange="calculatePrice()">
+                                        <option value="1">1 Column (approx. 4cm width)</option>
+                                        <option value="2">2 Columns (approx. 8cm width)</option>
+                                        <option value="3">3 Columns (approx. 12cm width)</option>
+                                        <option value="4">4 Columns (approx. 16cm width)</option>
+                                        <option value="5">5 Columns (approx. 20cm width)</option>
+                                        <option value="6">6 Columns (approx. 24cm width)</option>
+                                        <option value="8">8 Columns (Full Page Width)</option>
+                                    </select>
                                 </div>
-                                <div class="col-12 mt-3">
+
+                                <div class="col-12 mt-2">
+                                    <div class="alert alert-light border d-flex align-items-center">
+                                        <i class="fas fa-ruler-combined text-primary me-2"></i>
+                                        <span class="fw-bold text-dark me-2">Ad Size:</span>
+                                        <span id="ad_size_display" class="font-monospace">5 cm x 4 cm</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mt-1">
                                     <div class="bg-light p-3 rounded-3 border-start border-4 border-lankadeepa">
                                         <div class="d-flex justify-content-between mb-1">
                                             <span class="text-muted small">Base Amount:</span>
@@ -229,6 +246,10 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
         const base = rate * h * c;
         const vat = base * (vatPercent / 100);
         const total = base + vat;
+
+        // Display Size
+        const widthCm = c * 4; // Approx 4cm per column based on "2 columns = 8cm"
+        document.getElementById('ad_size_display').textContent = `${h} cm (Height) x ${widthCm} cm (Width)`;
 
         document.getElementById('base_price').textContent = base.toFixed(2);
         document.getElementById('vat_amount').textContent = vat.toFixed(2);
