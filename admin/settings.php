@@ -15,6 +15,9 @@ try {
     $categories = $pdo->query("SELECT * FROM job_category_table ORDER BY Description ASC")->fetchAll();
     $siteSettings = $pdo->query("SELECT * FROM site_settings ORDER BY setting_key ASC")->fetchAll();
     
+    // Fetch All Employers for Whitelist
+    $employers = $pdo->query("SELECT id, employer_name FROM employer_profile ORDER BY employer_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
     // Fetch Cities with Districts
     $cities = $pdo->query("SELECT c.*, d.District_name FROM city_table c JOIN district_table d ON c.City_link = d.id ORDER BY d.District_name ASC, c.City ASC")->fetchAll();
     
@@ -92,7 +95,6 @@ try {
                         </div>
                         <form action="actions/update_settings.php" method="POST" enctype="multipart/form-data" class="row g-4">
                             <input type="hidden" name="action_type" value="update_company">
-                            <!-- Fields preserved from previous version -->
                             <div class="col-md-8">
                                 <label class="form-label fw-bold small">Official Entity Name</label>
                                 <input type="text" name="company_name" class="form-control form-control-pro" value="<?= htmlspecialchars($company['company_name'] ?? '') ?>">
@@ -348,7 +350,7 @@ try {
                                 foreach($siteSettings as $s) {
                                     if($s['setting_key'] === 'promotion_period') continue; // Handled by toggle
                                     if($s['setting_key'] === 'paper_ad_rate_per_sq_cm') continue; // Handled above
-                                    if($s['setting_key'] === 'enable_direct_apply' || $s['setting_key'] === 'enable_whatsapp_apply') continue; // Handled in User Rights
+                                    if($s['setting_key'] === 'enable_direct_apply' || $s['setting_key'] === 'enable_whatsapp_apply' || $s['setting_key'] === 'allowed_employers_for_apply') continue; // Handled in User Rights
 
                                     if (strpos($s['setting_key'], 'sms_') === 0) $groups['SMS Gateway'][] = $s;
                                     elseif (strpos($s['setting_key'], 'google_') === 0) $groups['Google Integration'][] = $s;
@@ -392,7 +394,7 @@ try {
                         <div class="section-header">
                             <div>
                                 <h4 class="fw-bold m-0">User Permissions</h4>
-                                <p class="text-muted small m-0">Manage global access rights for users.</p>
+                                <p class="text-muted small m-0">Manage global access rights and whitelisted employers.</p>
                             </div>
                         </div>
 
@@ -400,18 +402,30 @@ try {
                             <input type="hidden" name="action_type" value="update_site_settings">
 
                             <?php
-                                // Helper to find or create setting key logic
+                                // Global Toggles
                                 $rights = [
-                                    'enable_direct_apply' => ['label' => 'Direct Apply (System)', 'desc' => 'Allow candidates to apply directly via the system.'],
-                                    'enable_whatsapp_apply' => ['label' => 'WhatsApp Apply', 'desc' => 'Allow candidates to contact employers via WhatsApp.']
+                                    'enable_direct_apply' => ['label' => 'Direct Apply (System)', 'desc' => 'Allow candidates to apply directly via the system globally.'],
+                                    'enable_whatsapp_apply' => ['label' => 'WhatsApp Apply', 'desc' => 'Allow candidates to contact employers via WhatsApp globally.']
                                 ];
+
+                                // Fetch allowed_employers_for_apply setting
+                                $allowedEmpId = 0;
+                                $allowedEmpVal = '';
+                                foreach($siteSettings as $s) {
+                                    if ($s['setting_key'] === 'allowed_employers_for_apply') {
+                                        $allowedEmpId = $s['id'];
+                                        $allowedEmpVal = $s['setting_value'];
+                                        break;
+                                    }
+                                }
+                                $allowedEmpList = explode(',', $allowedEmpVal);
                             ?>
 
                             <div class="list-group list-group-flush border rounded-4 mb-4">
                                 <?php foreach($rights as $key => $meta): ?>
                                     <?php
                                         $sId = 0;
-                                        $val = '1'; // Default enabled if not found (or should we default disable? Usually enable for features)
+                                        $val = '1';
                                         $found = false;
                                         foreach($siteSettings as $s) {
                                             if ($s['setting_key'] === $key) {
@@ -439,7 +453,42 @@ try {
                                 <?php endforeach; ?>
                             </div>
 
-                            <div class="text-end">
+                            <!-- Whitelist Section -->
+                            <div class="p-4 bg-light rounded-4 border">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-user-check me-2"></i>Override: Allowed Employers</h6>
+                                <p class="small text-muted">Select employers who can ALWAYS accept direct applications/WhatsApp, even if the features are disabled globally.</p>
+
+                                <?php if($allowedEmpId): ?>
+                                    <!-- Using Multi-select UI -->
+                                    <div class="mb-3">
+                                        <input type="hidden" name="settings[<?= $allowedEmpId ?>]" id="allowed_employers_input" value="<?= $allowedEmpVal ?>">
+                                        <select class="form-select form-control-pro" onchange="addEmployerToWhitelist(this)">
+                                            <option value="">Select Employer to Add...</option>
+                                            <?php foreach($employers as $emp): ?>
+                                                <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['employer_name']) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div id="whitelist_tags" class="d-flex flex-wrap gap-2">
+                                        <?php foreach($allowedEmpList as $eid): ?>
+                                            <?php if(empty($eid)) continue; ?>
+                                            <?php
+                                                $eName = 'Unknown';
+                                                foreach($employers as $emp) { if($emp['id'] == $eid) { $eName = $emp['employer_name']; break; } }
+                                            ?>
+                                            <span class="badge bg-white border text-dark p-2 d-flex align-items-center">
+                                                <?= htmlspecialchars($eName) ?>
+                                                <i class="fas fa-times ms-2 text-danger cursor-pointer" onclick="removeEmployerFromWhitelist('<?= $eid ?>')"></i>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-sm btn-dark" onclick="submitNewKey('allowed_employers_for_apply', '')">Initialize Whitelist</button>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="text-end mt-4">
                                 <button type="submit" class="btn btn-primary rounded-pill fw-bold px-4">Update Permissions</button>
                             </div>
                         </form>
@@ -451,6 +500,7 @@ try {
     </div>
 </div>
 
+<!-- Scripts for Modals (Same as before) -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <form action="actions/update_settings.php" method="POST" class="modal-content border-0 shadow-lg rounded-4">
@@ -660,6 +710,47 @@ try {
         
         document.body.appendChild(form);
         form.submit();
+    }
+
+    // Whitelist Logic
+    function addEmployerToWhitelist(select) {
+        const id = select.value;
+        if(!id) return;
+
+        const input = document.getElementById('allowed_employers_input');
+        let current = input.value.split(',').filter(x => x);
+
+        if(!current.includes(id)) {
+            current.push(id);
+            input.value = current.join(',');
+            // Auto-submit or just visually add? Let's just visually add and require save
+            const name = select.options[select.selectedIndex].text;
+
+            const tag = document.createElement('span');
+            tag.className = 'badge bg-white border text-dark p-2 d-flex align-items-center';
+            tag.innerHTML = `${name} <i class="fas fa-times ms-2 text-danger cursor-pointer" onclick="removeEmployerFromWhitelist('${id}')"></i>`;
+            document.getElementById('whitelist_tags').appendChild(tag);
+        }
+        select.value = ""; // Reset
+    }
+
+    function removeEmployerFromWhitelist(id) {
+        const input = document.getElementById('allowed_employers_input');
+        let current = input.value.split(',').filter(x => x);
+        const index = current.indexOf(id.toString());
+        if(index > -1) {
+            current.splice(index, 1);
+            input.value = current.join(',');
+            // Re-render handled by page reload on save, or complex DOM manipulation.
+            // For now, simple alert or just hide parent?
+            // Since we use onClick on the <i>, we can find the parent span and remove it.
+            // But checking 'event' here is tricky with string function.
+            // Better to just let them click 'Save' to persist removal?
+            // Or simpler: Reload logic.
+            // Actually, I'll just submit the form if I want immediate effect, but the "Update Permissions" button is better.
+            // To make it visually consistent without reload:
+            event.target.parentElement.remove();
+        }
     }
 </script>
 <?php include '../layout/ui_helpers.php'; ?>
