@@ -2,12 +2,16 @@
 session_start();
 require_once '../config/config.php';
 
-// Auth Check - Allow both Admin and PaperAdmin
-if (!isset($_SESSION['user_type']) || (!in_array($_SESSION['user_type'], ['Admin', 'PaperAdmin']))) {
+// Auth Check - Allow Admin, PaperAdmin, or Promoted Users
+$isPaperAdminRole = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'PaperAdmin');
+$isSuperAdmin = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'Admin');
+$isPromotedAdmin = (isset($_SESSION['is_paper_admin']) && $_SESSION['is_paper_admin'] === 1);
+
+if (!$isSuperAdmin && !$isPaperAdminRole && !$isPromotedAdmin) {
     header("Location: ../login.php"); exit();
 }
 
-$isPaperAdmin = ($_SESSION['user_type'] === 'PaperAdmin');
+$isPaperAdmin = ($isPaperAdminRole || $isPromotedAdmin);
 $pageTitle = "Paper Ad Requests";
 $activeTab = 'paper_ads';
 
@@ -21,7 +25,7 @@ if (isset($_POST['update_status'])) {
     exit();
 }
 
-// Fetch Ads
+// Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
 $sql = "SELECT p.*, u.full_name, u.user_email
         FROM paper_ads p
@@ -32,7 +36,29 @@ if ($statusFilter !== 'All') {
 }
 $sql .= " ORDER BY p.created_at DESC";
 
-$ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // Check for missing table (1146) or missing column (1054)
+    if ($e->getCode() == '42S02' || $e->getCode() == '42S22') {
+        // Attempt Schema Fix
+        if (file_exists('../setup_newspaper_tables.php')) {
+            ob_start();
+            include '../setup_newspaper_tables.php'; // Adjusted path to root
+            ob_end_clean();
+            // Retry Query
+            try {
+                $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $ex) {
+                die("System Error: Database schema mismatch. Please run setup scripts. " . $ex->getMessage());
+            }
+        } else {
+            die("System Error: Missing setup script.");
+        }
+    } else {
+        die("Database Error: " . $e->getMessage());
+    }
+}
 
 ?>
 <!DOCTYPE html>
@@ -111,7 +137,16 @@ $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                                         <div class="small text-muted"><?= htmlspecialchars($ad['user_email'] ?? '-') ?></div>
                                     </td>
                                     <td style="max-width: 300px;">
-                                        <div class="small fw-bold mb-1">Dim: <?= $ad['width_cm'] ?> x <?= $ad['height_cm'] ?> cm</div>
+                                        <!-- Safe Display Logic for Old vs New Data -->
+                                        <?php if(!empty($ad['height_cm'])): ?>
+                                            <div class="small fw-bold mb-1">
+                                                Size: <?= $ad['height_cm'] ?>cm x <?= ($ad['columns'] ?? 1) * 4 ?>cm
+                                                <span class="text-muted fw-normal">(<?= $ad['columns'] ?? 1 ?> Col)</span>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="small fw-bold mb-1">Dim: <?= $ad['width_cm'] ?> x <?= $ad['height_cm'] ?> cm</div>
+                                        <?php endif; ?>
+
                                         <div class="text-truncate text-muted" title="<?= htmlspecialchars($ad['ad_content']) ?>">
                                             <?= htmlspecialchars(substr($ad['ad_content'], 0, 50)) ?>...
                                         </div>

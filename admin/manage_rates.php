@@ -3,16 +3,19 @@ session_start();
 require_once '../config/config.php';
 
 // Auth
-if (!isset($_SESSION['user_type']) || !in_array($_SESSION['user_type'], ['Admin', 'PaperAdmin'])) {
+$isPaperAdminRole = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'PaperAdmin');
+$isMainAdmin = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'Admin');
+$isPromotedAdmin = (isset($_SESSION['is_paper_admin']) && $_SESSION['is_paper_admin'] === 1);
+
+if (!$isMainAdmin && !$isPaperAdminRole && !$isPromotedAdmin) {
     header("Location: ../login.php"); exit();
 }
 
-$isMainAdmin = ($_SESSION['user_type'] === 'Admin');
-$isPaperAdmin = ($_SESSION['user_type'] === 'PaperAdmin');
+$isPaperAdmin = ($isPaperAdminRole || $isPromotedAdmin);
 
 // Check Rights for PaperAdmin
 $canEdit = $isMainAdmin;
-if ($isPaperAdmin) {
+if ($isPaperAdmin && !$isMainAdmin) {
     $stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'paper_admin_edit_rights'");
     $stmt->execute();
     $rights = $stmt->fetchColumn();

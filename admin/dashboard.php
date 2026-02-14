@@ -145,8 +145,10 @@ try {
         </a>
         <a class="nav-link" href="manage_jobs.php"><i class="fas fa-list-ul"></i> Manage Jobs</a>
         <a class="nav-link" href="manage_paper_ads.php"><i class="fas fa-newspaper"></i> Paper Ads</a>
-        <!-- NEW: Manage Staff -->
-        <a class="nav-link" href="manage_staff.php"><i class="fas fa-users-cog"></i> Staff</a>
+
+        <a class="nav-link" href="manage_staff.php"><i class="fas fa-users-cog"></i> Staff & Logs</a>
+        <!-- NEW: Seeker Reports -->
+        <a class="nav-link" href="seeker_report.php"><i class="fas fa-users-viewfinder"></i> Seeker Intel</a>
 
         <a class="nav-link" href="external_ads.php"><i class="fas fa-bullhorn"></i> Promo Manager</a>
         <a class="nav-link" href="sms_panel.php"><i class="fas fa-comment-sms"></i> SMS Manager</a>
@@ -244,10 +246,10 @@ try {
     <h5 class="fw-bold mb-3 mt-5">Quick Operations</h5>
     <div class="row g-3">
         <div class="col-md-3">
-            <a href="manage_jobs.php" class="btn-action text-decoration-none d-block">
-                <i class="fas fa-search-plus text-primary mb-2 d-block fa-lg"></i>
-                <span class="fw-bold text-dark d-block">Audit Jobs</span>
-                <span class="text-muted small">Review active content</span>
+            <a href="manage_staff.php" class="btn-action text-decoration-none d-block">
+                <i class="fas fa-user-shield text-primary mb-2 d-block fa-lg"></i>
+                <span class="fw-bold text-dark d-block">Paper Admin Logs</span>
+                <span class="text-muted small">Manage staff access</span>
             </a>
         </div>
         <div class="col-md-3">

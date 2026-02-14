@@ -77,10 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_type']  = trim($user['user_type']);
                 $_SESSION['full_name']  = $user['full_name'];
                 $_SESSION['last_login'] = time();
+                // Check for dual role (Paper Admin flag)
+                $_SESSION['is_paper_admin'] = isset($user['is_paper_admin']) ? (int)$user['is_paper_admin'] : 0;
 
-                // Log Admin Logins (PaperAdmin & Admin)
+                // Log Admin Logins (PaperAdmin & Admin & Promoted Users)
                 $role = strtolower(trim($user['user_type']));
-                if ($role === 'paperadmin' || $role === 'admin') {
+                if ($role === 'paperadmin' || $role === 'admin' || $_SESSION['is_paper_admin'] === 1) {
                     $ip = $_SERVER['REMOTE_ADDR'];
                     try {
                         $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
@@ -116,6 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'seeker'     => '../employee/dashboard.php',
                     'paperadmin' => '../admin/manage_paper_ads.php'
                 ];
+
+                // Check for Dual Role Redirect
+                if ($_SESSION['is_paper_admin'] === 1 && $role !== 'paperadmin' && $role !== 'admin') {
+                    header("Location: ../select_dashboard.php");
+                    exit();
+                }
 
                 $location = $redirectMap[$role] ?? '../index.php';
                 

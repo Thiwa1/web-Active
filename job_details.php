@@ -19,12 +19,25 @@ try {
     if (!$job) { die("Vacancy not found or pending approval."); }
 
     // Fetch Global Settings for Feature Toggles
-    $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('enable_direct_apply', 'enable_whatsapp_apply')");
+    $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('enable_direct_apply', 'enable_whatsapp_apply', 'allowed_employers_for_apply')");
     $globalSettings = $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    // Determine Feature Availability (Default enabled if setting missing, or respect '0'/'1')
-    $canDirectApply = !isset($globalSettings['enable_direct_apply']) || $globalSettings['enable_direct_apply'] == '1';
-    $canWhatsAppApply = !isset($globalSettings['enable_whatsapp_apply']) || $globalSettings['enable_whatsapp_apply'] == '1';
+    // Check Global Toggles
+    $globalDirect = !isset($globalSettings['enable_direct_apply']) || $globalSettings['enable_direct_apply'] == '1';
+    $globalWhatsapp = !isset($globalSettings['enable_whatsapp_apply']) || $globalSettings['enable_whatsapp_apply'] == '1';
+
+    // Check Whitelist
+    $isWhitelisted = false;
+    if (!empty($globalSettings['allowed_employers_for_apply'])) {
+        $allowedList = explode(',', $globalSettings['allowed_employers_for_apply']);
+        if (in_array($job['link_to_employer_profile'], $allowedList)) {
+            $isWhitelisted = true;
+        }
+    }
+
+    // Final Permission Logic: Enabled if Global is ON OR Employer is Whitelisted
+    $canDirectApply = $globalDirect || $isWhitelisted;
+    $canWhatsAppApply = $globalWhatsapp || $isWhitelisted;
 
 } catch (PDOException $e) { die("Error: " . $e->getMessage()); }
 
