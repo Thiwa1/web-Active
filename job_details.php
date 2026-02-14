@@ -83,10 +83,24 @@ function render_html($data) {
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-auto text-center text-md-start mb-4 mb-md-0">
-                <?php if (!empty($job['logo_path'])): ?>
-                    <img src="<?= htmlspecialchars($job['logo_path']) ?>" class="company-badge">
-                <?php elseif ($job['employer_logo']): ?>
+                <?php
+                    // --- LOGO LOGIC (Fixed for paths) ---
+                    $cleanLogoPath = '';
+                    if (!empty($job['logo_path'])) {
+                        $cleanLogoPath = str_replace(['../', './'], '', $job['logo_path']);
+                    }
+                    $logoAbsPath = __DIR__ . '/' . $cleanLogoPath;
+                ?>
+
+                <?php if (!empty($cleanLogoPath) && file_exists($logoAbsPath)): ?>
+                    <img src="<?= htmlspecialchars($cleanLogoPath) ?>" class="company-badge">
+                <?php elseif (!empty($job['employer_logo'])): ?>
                     <img src="data:image/jpeg;base64,<?= base64_encode($job['employer_logo']) ?>" class="company-badge">
+                <?php else: ?>
+                    <!-- Fallback if no logo -->
+                    <div class="company-badge d-flex align-items-center justify-content-center bg-light text-muted fs-1 fw-bold">
+                        <?= strtoupper(substr($job['employer_name'] ?? 'C', 0, 1)) ?>
+                    </div>
                 <?php endif; ?>
             </div>
             <div class="col-md text-center text-md-start">
@@ -106,9 +120,18 @@ function render_html($data) {
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="glass-card mb-4">
-                <?php if (!empty($job['img_path'])): ?>
+                <?php
+                    // --- BANNER IMAGE LOGIC (Fixed for paths) ---
+                    $cleanImgPath = '';
+                    if (!empty($job['img_path'])) {
+                        $cleanImgPath = str_replace(['../', './'], '', $job['img_path']);
+                    }
+                    $imgAbsPath = __DIR__ . '/' . $cleanImgPath;
+                ?>
+
+                <?php if (!empty($cleanImgPath) && file_exists($imgAbsPath)): ?>
                     <div class="rounded-4 overflow-hidden mb-5 border">
-                        <img src="<?= htmlspecialchars($job['img_path']) ?>" class="w-100 h-auto" alt="Job Visual">
+                        <img src="<?= htmlspecialchars($cleanImgPath) ?>" class="w-100 h-auto" alt="Job Visual">
                     </div>
                 <?php elseif (!empty($job['Img'])): ?>
                     <div class="rounded-4 overflow-hidden mb-5 border">
