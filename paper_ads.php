@@ -86,7 +86,7 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <h4 class="mb-1 fw-bold" style="font-family: 'Inter', sans-serif;">Newspaper Advertising</h4>
-                            <p class="mb-0 small opacity-75 text-white">Publish your ad in top national newspapers</p>
+                            <p class="mb-0 small opacity-75 text-white">Publish your ad in top national newspapers <span class="fw-bold text-warning">(This is a Box type advertising)</span></p>
                         </div>
                         <i class="fas fa-newspaper fa-2x opacity-50"></i>
                     </div>
