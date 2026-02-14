@@ -82,7 +82,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $role = strtolower(trim($user['user_type']));
                 if ($role === 'paperadmin' || $role === 'admin') {
                     $ip = $_SERVER['REMOTE_ADDR'];
-                    $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
+                    try {
+                        $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
+                    } catch (PDOException $e) {
+                        // Lazy Load Table if Missing
+                        if ($e->getCode() == '42S02') {
+                            try {
+                                $pdo->exec("CREATE TABLE IF NOT EXISTS admin_login_logs (
+                                    id INT AUTO_INCREMENT PRIMARY KEY,
+                                    user_id INT NOT NULL,
+                                    login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    ip_address VARCHAR(45) DEFAULT NULL,
+                                    INDEX (user_id)
+                                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+                                // Retry Log
+                                $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
+                            } catch (Exception $ex) {
+                                error_log("Failed to create/log admin login: " . $ex->getMessage());
+                            }
+                        } else {
+                            error_log("Admin logging error: " . $e->getMessage());
+                        }
+                    }
                 }
 
                 // 10. Intelligent Redirection Logic
