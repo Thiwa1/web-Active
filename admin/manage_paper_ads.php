@@ -2,12 +2,16 @@
 session_start();
 require_once '../config/config.php';
 
-// Auth Check - Allow both Admin and PaperAdmin
-if (!isset($_SESSION['user_type']) || (!in_array($_SESSION['user_type'], ['Admin', 'PaperAdmin']))) {
+// Auth Check - Allow Admin, PaperAdmin, or Promoted Users
+$isPaperAdminRole = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'PaperAdmin');
+$isSuperAdmin = (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'Admin');
+$isPromotedAdmin = (isset($_SESSION['is_paper_admin']) && $_SESSION['is_paper_admin'] === 1);
+
+if (!$isSuperAdmin && !$isPaperAdminRole && !$isPromotedAdmin) {
     header("Location: ../login.php"); exit();
 }
 
-$isPaperAdmin = ($_SESSION['user_type'] === 'PaperAdmin');
+$isPaperAdmin = ($isPaperAdminRole || $isPromotedAdmin);
 $pageTitle = "Paper Ad Requests";
 $activeTab = 'paper_ads';
 

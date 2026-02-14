@@ -8,30 +8,94 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
 
 $pageTitle = "Staff Management";
 
-// Handle Add User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_user') {
-    $name = htmlspecialchars($_POST['full_name']);
-    $email = htmlspecialchars($_POST['user_email']);
-    $phone = htmlspecialchars($_POST['mobile_number']);
-    $password = password_hash($_POST['user_password'], PASSWORD_BCRYPT);
-    $role = 'PaperAdmin';
-    $gender = 'Other'; // Default
-    $dob = date('Y-m-d'); // Default
+// Lazy Load Schema: Ensure is_paper_admin column exists
+try {
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_table LIKE 'is_paper_admin'");
+    if (!$stmt->fetch()) {
+        $pdo->exec("ALTER TABLE user_table ADD COLUMN is_paper_admin TINYINT(1) DEFAULT 0");
+    }
+} catch (Exception $e) {
+    // Ignore if error, might already exist or other DB issue
+}
 
-    try {
-        $stmt = $pdo->prepare("INSERT INTO user_table (full_name, user_email, mobile_number, user_password, user_type, male_female, Birthday, WhatsApp_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $email, $phone, $password, $role, $gender, $dob, $phone]);
-        $success = "New staff member added.";
-    } catch (PDOException $e) {
-        $error = "Error: " . $e->getMessage();
+// Handle Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // 1. Add New Paper Admin User
+    if (isset($_POST['action']) && $_POST['action'] === 'add_user') {
+        $name = htmlspecialchars($_POST['full_name']);
+        $email = htmlspecialchars($_POST['user_email']);
+        $phone = htmlspecialchars($_POST['mobile_number']);
+        $password = password_hash($_POST['user_password'], PASSWORD_BCRYPT);
+        $role = 'PaperAdmin';
+        $gender = 'Other';
+        $dob = date('Y-m-d');
+
+        try {
+            // Ensure PaperAdmin role exists
+            $pdo->exec("INSERT IGNORE INTO user_type_table (user_type_select, type_hide) VALUES ('PaperAdmin', 0)");
+
+            $stmt = $pdo->prepare("INSERT INTO user_table (full_name, user_email, mobile_number, user_password, user_type, male_female, Birthday, WhatsApp_number, is_paper_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$name, $email, $phone, $password, $role, $gender, $dob, $phone]);
+            $success = "New staff member created successfully.";
+        } catch (PDOException $e) {
+            // Fallback for schema variance
+            if (strpos($e->getMessage(), "Unknown column 'type_hide'") !== false) {
+                 try {
+                    $pdo->exec("INSERT IGNORE INTO user_type_table (user_type_select) VALUES ('PaperAdmin')");
+                    $stmt = $pdo->prepare("INSERT INTO user_table (full_name, user_email, mobile_number, user_password, user_type, male_female, Birthday, WhatsApp_number, is_paper_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+                    $stmt->execute([$name, $email, $phone, $password, $role, $gender, $dob, $phone]);
+                    $success = "New staff member created successfully.";
+                 } catch (PDOException $ex) {
+                    $error = "Error: " . $ex->getMessage();
+                 }
+            } else {
+                $error = "Error: " . $e->getMessage();
+            }
+        }
+    }
+
+    // 2. Grant Admin Rights to Existing User
+    if (isset($_POST['action']) && $_POST['action'] === 'grant_admin') {
+        $target_email = $_POST['target_email'];
+        $stmt = $pdo->prepare("UPDATE user_table SET is_paper_admin = 1 WHERE user_email = ?");
+        $stmt->execute([$target_email]);
+        if ($stmt->rowCount() > 0) {
+            $success = "User '$target_email' has been granted Paper Admin privileges.";
+        } else {
+            $error = "User not found or already an admin.";
+        }
+    }
+
+    // 3. Revoke Admin Rights
+    if (isset($_POST['action']) && $_POST['action'] === 'revoke_admin') {
+        $target_id = $_POST['user_id'];
+        // Only revoke if they are NOT a primary PaperAdmin (to avoid locking out the main staff accounts)
+        // Or if they are, maybe we just set the flag to 0?
+        // Logic: If user_type is PaperAdmin, they are dedicated. If not, they are promoted.
+        // Let's just set flag to 0.
+        $stmt = $pdo->prepare("UPDATE user_table SET is_paper_admin = 0 WHERE id = ? AND user_type != 'PaperAdmin'");
+        $stmt->execute([$target_id]);
+        if ($stmt->rowCount() > 0) {
+            $success = "Paper Admin privileges revoked.";
+        } else {
+            $error = "Cannot revoke privileges for dedicated Staff accounts (change their role instead) or user not found.";
+        }
     }
 }
 
-// Fetch Staff
-$staff = $pdo->query("SELECT id, full_name, user_email, mobile_number, created_at FROM user_table WHERE user_type = 'PaperAdmin' ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+// Fetch Staff (Dedicated PaperAdmin OR Promoted Users)
+$staff = $pdo->query("SELECT id, full_name, user_email, mobile_number, user_type, is_paper_admin FROM user_table WHERE user_type = 'PaperAdmin' OR is_paper_admin = 1 ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch Login Logs for Staff
-$logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_table u ON l.user_id = u.id WHERE u.user_type = 'PaperAdmin' ORDER BY l.login_time DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+// Fetch Login Logs (For anyone who is a paper admin)
+// We need to join logs with user table to check permissions
+$logs = $pdo->query("
+    SELECT l.*, u.full_name, u.user_type
+    FROM admin_login_logs l
+    JOIN user_table u ON l.user_id = u.id
+    WHERE u.user_type = 'PaperAdmin' OR u.is_paper_admin = 1
+    ORDER BY l.login_time DESC LIMIT 50
+")->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 <!DOCTYPE html>
@@ -67,7 +131,7 @@ $logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_t
     <div class="flex-grow-1 p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Staff Management</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="fas fa-plus me-2"></i> Add Paper Admin</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="fas fa-plus me-2"></i> Create Paper Admin</button>
         </div>
 
         <?php if(isset($success)): ?>
@@ -78,31 +142,71 @@ $logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_t
         <?php endif; ?>
 
         <div class="row g-4">
+            <!-- Promote User Card -->
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">Promote Existing User</h5>
+                        <form method="POST" class="row g-3 align-items-end">
+                            <input type="hidden" name="action" value="grant_admin">
+                            <div class="col-md-6">
+                                <label class="form-label">User Email Address</label>
+                                <input type="email" name="target_email" class="form-control" placeholder="Enter email of existing user (e.g. employer)" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-outline-success w-100"><i class="fas fa-user-shield me-2"></i> Grant Privileges</button>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">This will allow the user to access the Paper Ads dashboard in addition to their current role.</small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Staff List -->
-            <div class="col-md-6">
+            <div class="col-md-7">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0">Paper Ad Administrators</h5>
+                        <h5 class="mb-0">Authorized Administrators</h5>
                     </div>
                     <div class="card-body p-0">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover mb-0 align-middle">
                             <thead class="bg-light">
                                 <tr>
                                     <th class="ps-3">Name</th>
+                                    <th>Role</th>
                                     <th>Email</th>
-                                    <th>Contact</th>
+                                    <th class="text-end pe-3">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach($staff as $u): ?>
                                     <tr>
                                         <td class="ps-3 fw-bold"><?= htmlspecialchars($u['full_name']) ?></td>
+                                        <td>
+                                            <?php if($u['user_type'] === 'PaperAdmin'): ?>
+                                                <span class="badge bg-primary">Dedicated Staff</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-info text-dark"><?= htmlspecialchars($u['user_type']) ?> + Admin</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?= htmlspecialchars($u['user_email']) ?></td>
-                                        <td><?= htmlspecialchars($u['mobile_number']) ?></td>
+                                        <td class="text-end pe-3">
+                                            <?php if($u['user_type'] !== 'PaperAdmin'): ?>
+                                                <form method="POST" onsubmit="return confirm('Revoke admin rights?');">
+                                                    <input type="hidden" name="action" value="revoke_admin">
+                                                    <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                    <button class="btn btn-sm btn-outline-danger">Revoke</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="text-muted small">Primary</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                                 <?php if(empty($staff)): ?>
-                                    <tr><td colspan="3" class="text-center text-muted py-3">No staff accounts found.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-3">No staff accounts found.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>
@@ -111,10 +215,10 @@ $logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_t
             </div>
 
             <!-- Login Logs -->
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="card shadow-sm border-0 h-100">
                     <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0">Access Logs</h5>
+                        <h5 class="mb-0">Recent Access</h5>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-hover mb-0 small">
@@ -128,8 +232,11 @@ $logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_t
                             <tbody>
                                 <?php foreach($logs as $log): ?>
                                     <tr>
-                                        <td class="ps-3"><?= htmlspecialchars($log['full_name']) ?></td>
-                                        <td><?= $log['login_time'] ?></td>
+                                        <td class="ps-3">
+                                            <?= htmlspecialchars($log['full_name']) ?>
+                                            <?php if($log['user_type'] !== 'PaperAdmin') echo '<span class="text-muted">*</span>'; ?>
+                                        </td>
+                                        <td><?= date('M d H:i', strtotime($log['login_time'])) ?></td>
                                         <td><span class="font-monospace text-muted"><?= $log['ip_address'] ?></span></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -172,7 +279,7 @@ $logs = $pdo->query("SELECT l.*, u.full_name FROM admin_login_logs l JOIN user_t
                     <input type="password" name="user_password" class="form-control" required>
                 </div>
                 <div class="alert alert-info small mb-0">
-                    This user will have restricted access to the <strong>Paper Ads</strong> module only.
+                    This user will be a <strong>dedicated admin</strong>. To give an existing user (like an Employer) admin rights, close this and use the "Promote Existing User" form.
                 </div>
             </div>
             <div class="modal-footer">
