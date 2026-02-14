@@ -78,22 +78,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['full_name']  = $user['full_name'];
                 $_SESSION['last_login'] = time();
 
-                // 10. Intelligent Redirection Logic
+                // Log Admin Logins (PaperAdmin & Admin)
                 $role = strtolower(trim($user['user_type']));
-                
+                if ($role === 'paperadmin' || $role === 'admin') {
+                    $ip = $_SERVER['REMOTE_ADDR'];
+                    $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
+                }
+
+                // 10. Intelligent Redirection Logic
                 $redirectMap = [
-                    'employer'  => '../employer/dashboard.php',
-                    'admin'     => '../admin/dashboard.php',
-                    'employee'  => '../employee/dashboard.php',
-                    'candidate' => '../employee/dashboard.php',
-                    'seeker'    => '../employee/dashboard.php'
+                    'employer'   => '../employer/dashboard.php',
+                    'admin'      => '../admin/dashboard.php',
+                    'employee'   => '../employee/dashboard.php',
+                    'candidate'  => '../employee/dashboard.php',
+                    'seeker'     => '../employee/dashboard.php',
+                    'paperadmin' => '../admin/manage_paper_ads.php'
                 ];
 
                 $location = $redirectMap[$role] ?? '../index.php';
                 
-                // Optional: Log successful login to a table
-                // $pdo->prepare("UPDATE user_table SET last_login_at = NOW() WHERE id = ?")->execute([$user['id']]);
-
                 header("Location: " . $location);
                 exit();
 

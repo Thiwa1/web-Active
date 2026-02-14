@@ -2,11 +2,12 @@
 session_start();
 require_once '../config/config.php';
 
-// Auth Check
-if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
+// Auth Check - Allow both Admin and PaperAdmin
+if (!isset($_SESSION['user_type']) || (!in_array($_SESSION['user_type'], ['Admin', 'PaperAdmin']))) {
     header("Location: ../login.php"); exit();
 }
 
+$isPaperAdmin = ($_SESSION['user_type'] === 'PaperAdmin');
 $pageTitle = "Paper Ad Requests";
 $activeTab = 'paper_ads';
 
@@ -55,10 +56,19 @@ $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 <div class="d-flex">
     <!-- Sidebar -->
     <div class="sidebar p-3 d-none d-md-block" style="width: 250px;">
-        <h4 class="mb-4 text-center">Admin Panel</h4>
+        <div class="mb-4 text-center">
+            <h4 class="mb-0"><?= $isPaperAdmin ? 'Paper Desk' : 'Admin Panel' ?></h4>
+            <?php if($isPaperAdmin): ?>
+                <small class="text-muted">Restricted Access</small>
+            <?php endif; ?>
+        </div>
+
         <ul class="nav flex-column gap-2">
-            <li class="nav-item"><a href="dashboard.php" class="nav-link"><i class="fas fa-home me-2"></i> Dashboard</a></li>
-            <li class="nav-item"><a href="manage_jobs.php" class="nav-link"><i class="fas fa-briefcase me-2"></i> Jobs</a></li>
+            <?php if(!$isPaperAdmin): ?>
+                <li class="nav-item"><a href="dashboard.php" class="nav-link"><i class="fas fa-home me-2"></i> Dashboard</a></li>
+                <li class="nav-item"><a href="manage_jobs.php" class="nav-link"><i class="fas fa-briefcase me-2"></i> Jobs</a></li>
+            <?php endif; ?>
+
             <li class="nav-item"><a href="manage_paper_ads.php" class="nav-link active"><i class="fas fa-newspaper me-2"></i> Paper Ads</a></li>
             <li class="nav-item"><a href="../logout.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
         </ul>
