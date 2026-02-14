@@ -34,6 +34,9 @@ try {
 } catch (Exception $e) { error_log($e->getMessage()); }
 
 $pageTitle = "Home";
+// SEO keywords for index page
+$metaDesc = "Find your dream job or hire top talent on JobPortal. The leading job portal in Sri Lanka. Also offering Paper Advertising services for Sunday Lankadeepa and other classifieds.";
+
 $extraCss = '<style>
     /* HERO SECTION */
     .hero-section {
@@ -758,13 +761,15 @@ include 'layout/header.php';
                     <p class="small text-muted mb-0">Instant job notifications</p>
                 </div>
             </div>
+            <!-- UPDATED: Post CV now highlights Paper Ads indirectly via related category or just general prominence -->
             <div class="col-lg-2 col-md-4 col-6">
                 <div class="p-3 border rounded-4 h-100 hover-shadow transition-all">
                     <div class="icon-box bg-warning bg-opacity-10 text-warning rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                        <i class="fas fa-file-upload fs-4"></i>
+                        <i class="fas fa-newspaper fs-4"></i>
                     </div>
-                    <h6 class="fw-bold mb-1">Post CV</h6>
-                    <p class="small text-muted mb-0">Upload via Mobile App</p>
+                    <h6 class="fw-bold mb-1">Paper Ads</h6>
+                    <p class="small text-muted mb-0">Sunday Lankadeepa & More</p>
+                    <a href="paper_ads.php" class="stretched-link"></a>
                 </div>
             </div>
             <div class="col-lg-2 col-md-4 col-6">

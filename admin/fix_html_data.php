@@ -2,40 +2,74 @@
 session_start();
 require_once '../config/config.php';
 
-// Security: Admin only (or temporary override if needed)
+// Security: Admin Only
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied. Please login as Admin.");
+    die("Unauthorized Access");
 }
 
-echo "Starting HTML Data Cleanup...<br>";
+echo "<html><body style='font-family: sans-serif; padding: 20px;'>";
+echo "<h2>Database HTML Cleaner</h2>";
+echo "<p>Removing Google Search artifacts from job descriptions...</p>";
 
 try {
-    $stmt = $pdo->query("SELECT id, employer_about_company FROM employer_profile WHERE employer_about_company IS NOT NULL AND employer_about_company != ''");
-    $count = 0;
+    // 1. Fetch all jobs with content
+    $stmt = $pdo->query("SELECT id, job_description FROM advertising_table WHERE job_description LIKE '%class=\"otQkpb\"%' OR job_description LIKE '%data-processed=\"true\"%'");
+    $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    while ($row = $stmt->fetch()) {
-        $original = $row['employer_about_company'];
-        $clean = $original;
+    if (empty($jobs)) {
+        echo "<div style='color: green;'>No corrupted records found. Database is clean.</div>";
+    } else {
+        echo "<p>Found " . count($jobs) . " records to clean.</p>";
 
-        // Decode repeatedly until stable (handles double/triple escaping)
-        for ($i = 0; $i < 5; $i++) {
-            $decoded = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            if ($decoded === $clean) break;
-            $clean = $decoded;
+        $count = 0;
+        foreach ($jobs as $job) {
+            $original = $job['job_description'];
+            $clean = $original;
+
+            // REMOVE GARBAGE PATTERNS
+
+            // 1. Remove Button Tags completely (View related links)
+            $clean = preg_replace('/<button\b[^>]*>(.*?)<\/button>/is', "", $clean);
+
+            // 2. Remove specific wrapper divs if they are just containers for headers (optional, or just clean attributes)
+            // Strategy: Clean attributes from ALL tags
+
+            // Remove 'class="..."'
+            $clean = preg_replace('/ class="[^"]*"/', '', $clean);
+
+            // Remove 'data-...' attributes
+            $clean = preg_replace('/ data-[a-zA-Z0-9-]+="[^"]*"/', '', $clean);
+
+            // Remove 'role="..."'
+            $clean = preg_replace('/ role="[^"]*"/', '', $clean);
+
+            // Remove 'aria-...'
+            $clean = preg_replace('/ aria-[a-zA-Z0-9-]+="[^"]*"/', '', $clean);
+
+            // Remove 'tabindex="..."'
+            $clean = preg_replace('/ tabindex="[^"]*"/', '', $clean);
+
+            // Remove empty spans that might be left over
+            $clean = preg_replace('/<span>\s*<\/span>/', '', $clean);
+
+            // 3. Optional: Convert specific div headers to standard h4/h5 if needed, but stripping attributes usually leaves <div>Header</div> which is fine.
+
+            // 4. Decode entities just in case
+            // $clean = html_entity_decode($clean); // Careful, might break HTML structure if stored encoded
+
+            if ($original !== $clean) {
+                $update = $pdo->prepare("UPDATE advertising_table SET job_description = ? WHERE id = ?");
+                $update->execute([$clean, $job['id']]);
+                $count++;
+                echo "<div>Fixed Job ID: {$job['id']}</div>";
+            }
         }
-
-        // Update if changed
-        if ($clean !== $original) {
-            $upd = $pdo->prepare("UPDATE employer_profile SET employer_about_company = ? WHERE id = ?");
-            $upd->execute([$clean, $row['id']]);
-            $count++;
-            echo "Fixed Record ID: " . $row['id'] . "<br>";
-        }
+        echo "<hr><h3 style='color: green;'>Successfully cleaned $count records.</h3>";
     }
 
-    echo "Cleanup Complete. Updated $count records.";
-
 } catch (Exception $e) {
-    die("Error: " . $e->getMessage());
+    echo "<div style='color: red;'>Error: " . $e->getMessage() . "</div>";
 }
-?>
+
+echo "<a href='dashboard.php'>Back to Dashboard</a>";
+echo "</body></html>";

@@ -17,6 +17,15 @@ try {
     $job = $stmt->fetch();
 
     if (!$job) { die("Vacancy not found or pending approval."); }
+
+    // Fetch Global Settings for Feature Toggles
+    $stmtSettings = $pdo->query("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('enable_direct_apply', 'enable_whatsapp_apply')");
+    $globalSettings = $stmtSettings->fetchAll(PDO::FETCH_KEY_PAIR);
+
+    // Determine Feature Availability (Default enabled if setting missing, or respect '0'/'1')
+    $canDirectApply = !isset($globalSettings['enable_direct_apply']) || $globalSettings['enable_direct_apply'] == '1';
+    $canWhatsAppApply = !isset($globalSettings['enable_whatsapp_apply']) || $globalSettings['enable_whatsapp_apply'] == '1';
+
 } catch (PDOException $e) { die("Error: " . $e->getMessage()); }
 
 function render_html($data) {
@@ -132,13 +141,13 @@ function render_html($data) {
                 <div class="glass-card p-4">
                     <h5 class="fw-bold mb-4">Application Center</h5>
                     
-                    <?php if ($job['Apply_by_system']): ?>
+                    <?php if ($job['Apply_by_system'] && $canDirectApply): ?>
                         <button type="button" class="btn btn-apply-now btn-lg w-100 rounded-4 fw-bold mb-3 py-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#applyModal">
                             Apply for Job <i class="fas fa-paper-plane ms-2"></i>
                         </button>
                     <?php endif; ?>
 
-                    <?php if ($job['apply_WhatsApp']): ?>
+                    <?php if ($job['apply_WhatsApp'] && $canWhatsAppApply): ?>
                         <a href="https://wa.me/<?= str_replace([' ', '+', '-'], '', $job['apply_WhatsApp_No']) ?>" target="_blank" class="btn btn-outline-success btn-lg w-100 rounded-4 fw-bold mb-3 py-3 border-2">
                             <i class="fab fa-whatsapp me-2"></i> WhatsApp
                         </a>
@@ -167,6 +176,7 @@ function render_html($data) {
     </div>
 </main>
 
+<?php if ($job['Apply_by_system'] && $canDirectApply): ?>
 <div class="fixed-action-bar d-md-none">
     <button class="btn btn-primary w-100 rounded-pill fw-bold py-2" data-bs-toggle="modal" data-bs-target="#applyModal">Apply Now</button>
 </div>
@@ -217,6 +227,7 @@ function render_html($data) {
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

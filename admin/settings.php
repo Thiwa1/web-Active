@@ -71,6 +71,7 @@ try {
                     <a class="nav-link-pro" data-bs-toggle="pill" href="#pane-geo"><i class="fas fa-map-location-dot"></i> Geography</a>
                     <a class="nav-link-pro" data-bs-toggle="pill" href="#pane-taxonomy"><i class="fas fa-sitemap"></i> Job Taxonomy</a>
                     <a class="nav-link-pro" data-bs-toggle="pill" href="#pane-sms"><i class="fas fa-comment-sms"></i> SMS / API</a>
+                    <a class="nav-link-pro" data-bs-toggle="pill" href="#pane-rights"><i class="fas fa-user-shield"></i> User Rights</a>
                 </nav>
                 <div class="mt-auto pt-4">
                     <a href="dashboard.php" class="btn btn-light w-100 rounded-pill fw-bold small"><i class="fas fa-arrow-left me-2"></i>Exit Config</a>
@@ -81,6 +82,7 @@ try {
         <main>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="pane-general">
+                    <!-- General Settings (Branding) -->
                     <div class="glass-card">
                         <div class="section-header">
                             <div>
@@ -90,6 +92,7 @@ try {
                         </div>
                         <form action="actions/update_settings.php" method="POST" enctype="multipart/form-data" class="row g-4">
                             <input type="hidden" name="action_type" value="update_company">
+                            <!-- Fields preserved from previous version -->
                             <div class="col-md-8">
                                 <label class="form-label fw-bold small">Official Entity Name</label>
                                 <input type="text" name="company_name" class="form-control form-control-pro" value="<?= htmlspecialchars($company['company_name'] ?? '') ?>">
@@ -152,6 +155,7 @@ try {
                 </div>
 
                 <div class="tab-pane fade" id="pane-geo">
+                    <!-- Geography Content (Preserved) -->
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="glass-card h-100">
@@ -217,6 +221,7 @@ try {
                 </div>
 
                 <div class="tab-pane fade" id="pane-taxonomy">
+                    <!-- Taxonomy Content (Preserved) -->
                     <div class="glass-card">
                         <div class="section-header">
                             <h5 class="fw-bold m-0">Job Classifications</h5>
@@ -265,6 +270,7 @@ try {
                 </div>
 
                 <div class="tab-pane fade" id="pane-sms">
+                    <!-- SMS Content (Preserved) -->
                     <div class="glass-card">
                         <div class="section-header">
                             <div>
@@ -308,10 +314,41 @@ try {
                                 </div>
                             </div>
 
+                            <!-- NEW: Paper Ad Settings (Preserved) -->
+                            <div class="p-3 mb-4 bg-light rounded-4 border">
+                                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-newspaper me-2"></i>Paper Ad Configuration</h6>
+                                <?php
+                                    $paperRate = '50.00';
+                                    $paperRateId = 0;
+                                    foreach($siteSettings as $s) {
+                                        if($s['setting_key'] === 'paper_ad_rate_per_sq_cm') {
+                                            $paperRate = $s['setting_value'];
+                                            $paperRateId = $s['id'];
+                                            break;
+                                        }
+                                    }
+                                ?>
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-bold small">Rate per Square Centimeter (LKR)</label>
+                                        <p class="small text-muted mb-0">Base calculation: Width * Height * Rate</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <?php if($paperRateId): ?>
+                                            <input type="number" step="0.01" name="settings[<?= $paperRateId ?>]" class="form-control form-control-pro" value="<?= $paperRate ?>">
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-dark w-100" onclick="addPaperRateKey()">Initialize Rate Key</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
                             <?php
                                 $groups = ['SMS Gateway' => [], 'Google Integration' => [], 'System Config' => []];
                                 foreach($siteSettings as $s) {
                                     if($s['setting_key'] === 'promotion_period') continue; // Handled by toggle
+                                    if($s['setting_key'] === 'paper_ad_rate_per_sq_cm') continue; // Handled above
+                                    if($s['setting_key'] === 'enable_direct_apply' || $s['setting_key'] === 'enable_whatsapp_apply') continue; // Handled in User Rights
 
                                     if (strpos($s['setting_key'], 'sms_') === 0) $groups['SMS Gateway'][] = $s;
                                     elseif (strpos($s['setting_key'], 'google_') === 0) $groups['Google Integration'][] = $s;
@@ -348,6 +385,67 @@ try {
                         </form>
                     </div>
                 </div>
+
+                <!-- User Rights Pane (NEW) -->
+                <div class="tab-pane fade" id="pane-rights">
+                    <div class="glass-card">
+                        <div class="section-header">
+                            <div>
+                                <h4 class="fw-bold m-0">User Permissions</h4>
+                                <p class="text-muted small m-0">Manage global access rights for users.</p>
+                            </div>
+                        </div>
+
+                        <form action="actions/update_settings.php" method="POST">
+                            <input type="hidden" name="action_type" value="update_site_settings">
+
+                            <?php
+                                // Helper to find or create setting key logic
+                                $rights = [
+                                    'enable_direct_apply' => ['label' => 'Direct Apply (System)', 'desc' => 'Allow candidates to apply directly via the system.'],
+                                    'enable_whatsapp_apply' => ['label' => 'WhatsApp Apply', 'desc' => 'Allow candidates to contact employers via WhatsApp.']
+                                ];
+                            ?>
+
+                            <div class="list-group list-group-flush border rounded-4 mb-4">
+                                <?php foreach($rights as $key => $meta): ?>
+                                    <?php
+                                        $sId = 0;
+                                        $val = '1'; // Default enabled if not found (or should we default disable? Usually enable for features)
+                                        $found = false;
+                                        foreach($siteSettings as $s) {
+                                            if ($s['setting_key'] === $key) {
+                                                $sId = $s['id'];
+                                                $val = $s['setting_value'];
+                                                $found = true;
+                                                break;
+                                            }
+                                        }
+                                    ?>
+                                    <div class="list-group-item p-3 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="fw-bold mb-1"><?= $meta['label'] ?></h6>
+                                            <p class="small text-muted mb-0"><?= $meta['desc'] ?></p>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <?php if($found): ?>
+                                                <input type="hidden" name="settings[<?= $sId ?>]" value="0">
+                                                <input class="form-check-input" type="checkbox" name="settings[<?= $sId ?>]" value="1" <?= $val == '1' ? 'checked' : '' ?> style="transform: scale(1.3);">
+                                            <?php else: ?>
+                                                <button type="button" class="btn btn-sm btn-outline-dark" onclick="submitNewKey('<?= $key ?>', '1')">Enable Feature</button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill fw-bold px-4">Update Permissions</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -529,6 +627,14 @@ try {
     }
 
     function addPromoKey() {
+        submitNewKey('promotion_period', '1');
+    }
+
+    function addPaperRateKey() {
+        submitNewKey('paper_ad_rate_per_sq_cm', '50.00');
+    }
+
+    function submitNewKey(key, val) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = 'actions/update_settings.php';
@@ -546,7 +652,7 @@ try {
         const valInput = document.createElement('input');
         valInput.type = 'hidden';
         valInput.name = 'value';
-        valInput.value = 'promotion_period'; // Key name
+        valInput.value = key;
         
         form.appendChild(typeInput);
         form.appendChild(tableInput);

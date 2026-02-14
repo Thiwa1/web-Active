@@ -144,8 +144,9 @@ try {
              <?php if($pendingRecruiters > 0): ?><span class="badge bg-danger ms-auto"><?= $pendingRecruiters ?></span><?php endif; ?>
         </a>
         <a class="nav-link" href="manage_jobs.php"><i class="fas fa-list-ul"></i> Manage Jobs</a>
-        <!-- NEW: Manage Paper Ads Link -->
         <a class="nav-link" href="manage_paper_ads.php"><i class="fas fa-newspaper"></i> Paper Ads</a>
+        <!-- NEW: Manage Staff -->
+        <a class="nav-link" href="manage_staff.php"><i class="fas fa-users-cog"></i> Staff</a>
 
         <a class="nav-link" href="external_ads.php"><i class="fas fa-bullhorn"></i> Promo Manager</a>
         <a class="nav-link" href="sms_panel.php"><i class="fas fa-comment-sms"></i> SMS Manager</a>
