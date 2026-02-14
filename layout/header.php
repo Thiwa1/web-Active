@@ -33,6 +33,16 @@ try {
         }
     }
 } catch (Exception $e) { error_log($e->getMessage()); }
+
+// SEO Logic
+$currentScript = basename($_SERVER['PHP_SELF']);
+if ($currentScript == 'paper_ads.php') {
+    $pageTitle = "ඉරිදා ලංකාදීප Paper Advertising";
+    $metaDesc = "Post your classified ads in Sunday Lankadeepa and other leading newspapers. Easy online submission for Paper Advertising in Sri Lanka.";
+} elseif ($currentScript == 'index.php' && !isset($metaDesc)) {
+    $metaDesc = "Find your dream job or hire top talent on " . htmlspecialchars($siteName) . ". The leading job portal in Sri Lanka. Also offering Paper Advertising services for Sunday Lankadeepa.";
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -43,7 +53,7 @@ try {
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="<?= isset($metaDesc) ? htmlspecialchars($metaDesc) : 'Find your dream job or hire top talent on ' . htmlspecialchars($siteName) . '. The leading job portal in Sri Lanka connecting employers and job seekers.' ?>">
-    <meta name="keywords" content="jobs, vacancies, sri lanka, recruitment, hiring, employment, careers, <?= htmlspecialchars($siteName) ?>">
+    <meta name="keywords" content="jobs, vacancies, sri lanka, recruitment, hiring, employment, careers, paper advertising, sunday lankadeepa, classifieds, <?= htmlspecialchars($siteName) ?>">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://tiptopvacancies.com<?= $_SERVER['REQUEST_URI'] ?>">
 
