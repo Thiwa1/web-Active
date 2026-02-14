@@ -6,8 +6,6 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     header("Location: ../login.php"); exit();
 }
 
-$pageTitle = "Staff Management";
-
 // Lazy Load Schema: Ensure is_paper_admin column exists
 try {
     $stmt = $pdo->query("SHOW COLUMNS FROM user_table LIKE 'is_paper_admin'");
@@ -70,10 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 3. Revoke Admin Rights
     if (isset($_POST['action']) && $_POST['action'] === 'revoke_admin') {
         $target_id = $_POST['user_id'];
-        // Only revoke if they are NOT a primary PaperAdmin (to avoid locking out the main staff accounts)
-        // Or if they are, maybe we just set the flag to 0?
-        // Logic: If user_type is PaperAdmin, they are dedicated. If not, they are promoted.
-        // Let's just set flag to 0.
         $stmt = $pdo->prepare("UPDATE user_table SET is_paper_admin = 0 WHERE id = ? AND user_type != 'PaperAdmin'");
         $stmt->execute([$target_id]);
         if ($stmt->rowCount() > 0) {
@@ -85,10 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch Staff (Dedicated PaperAdmin OR Promoted Users)
-$staff = $pdo->query("SELECT id, full_name, user_email, mobile_number, user_type, is_paper_admin FROM user_table WHERE user_type = 'PaperAdmin' OR is_paper_admin = 1 ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+$staff = $pdo->query("SELECT id, full_name, user_email, mobile_number, user_type, is_paper_admin, created_at FROM user_table WHERE user_type = 'PaperAdmin' OR is_paper_admin = 1 ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Login Logs (For anyone who is a paper admin)
-// We need to join logs with user table to check permissions
 $logs = $pdo->query("
     SELECT l.*, u.full_name, u.user_type
     FROM admin_login_logs l
@@ -97,155 +90,170 @@ $logs = $pdo->query("
     ORDER BY l.login_time DESC LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+$totalStaff = count($staff);
+$dedicatedStaff = 0;
+foreach($staff as $s) { if($s['user_type'] === 'PaperAdmin') $dedicatedStaff++; }
+$promotedStaff = $totalStaff - $dedicatedStaff;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Manage Staff | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management | Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: #343a40; color: white; }
-        .nav-link { color: rgba(255,255,255,0.8); }
-        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
+        :root { --pro-blue: #4361ee; --pro-bg: #f8f9fc; }
+        body { background-color: var(--pro-bg); font-family: 'Inter', sans-serif; color: #334155; }
+        .summary-card { background: white; border-radius: 16px; padding: 1.25rem; border: 1px solid #e3e6f0; display: flex; align-items: center; }
+        .summary-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px; }
+        .job-table-card { background: white; border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
+        .btn-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; transition: 0.2s; }
+        .avatar-initial { width: 40px; height: 40px; border-radius: 10px; background: #e0e7ff; color: #4361ee; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div class="d-flex">
-    <!-- Sidebar -->
-    <div class="sidebar p-3 d-none d-md-block" style="width: 250px;">
-        <h4 class="mb-4 text-center">Admin Panel</h4>
-        <ul class="nav flex-column gap-2">
-            <li class="nav-item"><a href="dashboard.php" class="nav-link"><i class="fas fa-home me-2"></i> Dashboard</a></li>
-            <li class="nav-item"><a href="manage_jobs.php" class="nav-link"><i class="fas fa-briefcase me-2"></i> Jobs</a></li>
-            <li class="nav-item"><a href="manage_paper_ads.php" class="nav-link"><i class="fas fa-newspaper me-2"></i> Paper Ads</a></li>
-            <li class="nav-item"><a href="manage_staff.php" class="nav-link active"><i class="fas fa-users-cog me-2"></i> Staff</a></li>
-            <li class="nav-item"><a href="../logout.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-        </ul>
+<div class="container py-5">
+
+    <?php if(isset($success)): ?>
+        <div class="alert alert-success alert-dismissible fade show rounded-4 mb-4">
+            <i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($success) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if(isset($error)): ?>
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4">
+            <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($error) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- Summary Section -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-icon bg-primary bg-opacity-10 text-primary"><i class="fas fa-users-cog"></i></div>
+                <div><div class="small text-muted fw-bold">TOTAL STAFF</div><div class="h4 fw-bold m-0"><?= $totalStaff ?></div></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-icon bg-success bg-opacity-10 text-success"><i class="fas fa-user-shield"></i></div>
+                <div><div class="small text-muted fw-bold">DEDICATED</div><div class="h4 fw-bold m-0"><?= $dedicatedStaff ?></div></div>
+            </div>
+        </div>
+        <div class="col-md-6 text-end d-flex align-items-center justify-content-end gap-2">
+            <button class="btn btn-outline-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="fas fa-plus me-2"></i> New Staff</button>
+            <a href="dashboard.php" class="btn btn-dark rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i> Exit</a>
+        </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="flex-grow-1 p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Staff Management</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="fas fa-plus me-2"></i> Create Paper Admin</button>
+    <div class="row g-4">
+        <!-- Staff List -->
+        <div class="col-lg-8">
+            <div class="job-table-card h-100">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Authorized Personnel</h5>
+                    <button class="btn btn-sm btn-light text-primary fw-bold" data-bs-toggle="collapse" data-bs-target="#promoteBox"><i class="fas fa-level-up-alt me-2"></i>Promote User</button>
+                </div>
+
+                <div class="collapse p-3 bg-light border-bottom" id="promoteBox">
+                    <form method="POST" class="row g-2 align-items-center">
+                        <input type="hidden" name="action" value="grant_admin">
+                        <div class="col-auto"><label class="fw-bold small">User Email:</label></div>
+                        <div class="col"><input type="email" name="target_email" class="form-control form-control-sm" placeholder="e.g. employer@company.com" required></div>
+                        <div class="col-auto"><button type="submit" class="btn btn-sm btn-success">Grant Access</button></div>
+                    </form>
+                    <small class="text-muted d-block mt-1 ms-1">Existing users will gain access to the Paper Admin dashboard.</small>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Staff Member</th>
+                                <th>Role</th>
+                                <th>Contact</th>
+                                <th>Joined</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach($staff as $u): ?>
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-initial me-3"><?= strtoupper(substr($u['full_name'], 0, 1)) ?></div>
+                                            <div>
+                                                <div class="fw-bold text-dark"><?= htmlspecialchars($u['full_name']) ?></div>
+                                                <div class="small text-muted"><?= htmlspecialchars($u['user_email']) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php if($u['user_type'] === 'PaperAdmin'): ?>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">Dedicated</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-3">Dual Role</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="small"><i class="fas fa-phone me-1 text-muted"></i> <?= htmlspecialchars($u['mobile_number']) ?></div>
+                                    </td>
+                                    <td><div class="small text-muted"><?= date('M d, Y', strtotime($u['created_at'])) ?></div></td>
+                                    <td class="text-end pe-4">
+                                        <?php if($u['user_type'] !== 'PaperAdmin'): ?>
+                                            <form method="POST" onsubmit="return confirm('Revoke admin rights?');">
+                                                <input type="hidden" name="action" value="revoke_admin">
+                                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                                <button class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-user-times"></i></button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="text-muted small"><i class="fas fa-lock"></i></span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if(empty($staff)): ?>
+                                <tr><td colspan="5" class="text-center py-5 text-muted">No staff accounts found.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <?php if(isset($success)): ?>
-            <div class="alert alert-success"><?= $success ?></div>
-        <?php endif; ?>
-        <?php if(isset($error)): ?>
-            <div class="alert alert-danger"><?= $error ?></div>
-        <?php endif; ?>
-
-        <div class="row g-4">
-            <!-- Promote User Card -->
-            <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h5 class="card-title">Promote Existing User</h5>
-                        <form method="POST" class="row g-3 align-items-end">
-                            <input type="hidden" name="action" value="grant_admin">
-                            <div class="col-md-6">
-                                <label class="form-label">User Email Address</label>
-                                <input type="email" name="target_email" class="form-control" placeholder="Enter email of existing user (e.g. employer)" required>
-                            </div>
-                            <div class="col-md-3">
-                                <button type="submit" class="btn btn-outline-success w-100"><i class="fas fa-user-shield me-2"></i> Grant Privileges</button>
-                            </div>
-                            <div class="col-md-12">
-                                <small class="text-muted">This will allow the user to access the Paper Ads dashboard in addition to their current role.</small>
-                            </div>
-                        </form>
-                    </div>
+        <!-- Access Logs -->
+        <div class="col-lg-4">
+            <div class="job-table-card h-100">
+                <div class="p-3 border-bottom bg-light">
+                    <h6 class="mb-0 fw-bold text-uppercase text-muted small">Recent Activity Log</h6>
                 </div>
-            </div>
-
-            <!-- Staff List -->
-            <div class="col-md-7">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0">Authorized Administrators</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-hover mb-0 align-middle">
-                            <thead class="bg-light">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-hover mb-0 small">
+                        <tbody>
+                            <?php foreach($logs as $log): ?>
                                 <tr>
-                                    <th class="ps-3">Name</th>
-                                    <th>Role</th>
-                                    <th>Email</th>
-                                    <th class="text-end pe-3">Action</th>
+                                    <td class="ps-3 border-bottom-0">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-bold text-dark"><?= htmlspecialchars($log['full_name']) ?></span>
+                                            <span class="text-muted"><?= date('M d H:i', strtotime($log['login_time'])) ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span class="text-muted">Login Success</span>
+                                            <span class="font-monospace text-muted bg-light px-1 rounded"><?= $log['ip_address'] ?></span>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($staff as $u): ?>
-                                    <tr>
-                                        <td class="ps-3 fw-bold"><?= htmlspecialchars($u['full_name']) ?></td>
-                                        <td>
-                                            <?php if($u['user_type'] === 'PaperAdmin'): ?>
-                                                <span class="badge bg-primary">Dedicated Staff</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-info text-dark"><?= htmlspecialchars($u['user_type']) ?> + Admin</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($u['user_email']) ?></td>
-                                        <td class="text-end pe-3">
-                                            <?php if($u['user_type'] !== 'PaperAdmin'): ?>
-                                                <form method="POST" onsubmit="return confirm('Revoke admin rights?');">
-                                                    <input type="hidden" name="action" value="revoke_admin">
-                                                    <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                                    <button class="btn btn-sm btn-outline-danger">Revoke</button>
-                                                </form>
-                                            <?php else: ?>
-                                                <span class="text-muted small">Primary</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <?php if(empty($staff)): ?>
-                                    <tr><td colspan="4" class="text-center text-muted py-3">No staff accounts found.</td></tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Login Logs -->
-            <div class="col-md-5">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white border-bottom">
-                        <h5 class="mb-0">Recent Access</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <table class="table table-hover mb-0 small">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-3">User</th>
-                                    <th>Time</th>
-                                    <th>IP</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($logs as $log): ?>
-                                    <tr>
-                                        <td class="ps-3">
-                                            <?= htmlspecialchars($log['full_name']) ?>
-                                            <?php if($log['user_type'] !== 'PaperAdmin') echo '<span class="text-muted">*</span>'; ?>
-                                        </td>
-                                        <td><?= date('M d H:i', strtotime($log['login_time'])) ?></td>
-                                        <td><span class="font-monospace text-muted"><?= $log['ip_address'] ?></span></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <?php if(empty($logs)): ?>
-                                    <tr><td colspan="3" class="text-center text-muted py-3">No activity recorded.</td></tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                            <?php endforeach; ?>
+                            <?php if(empty($logs)): ?>
+                                <tr><td class="text-center py-3 text-muted">No logs available.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -254,37 +262,37 @@ $logs = $pdo->query("
 
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create New Paper Admin</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>New Paper Admin</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <input type="hidden" name="action" value="add_user">
                 <div class="mb-3">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" name="full_name" class="form-control" required>
+                    <label class="form-label small fw-bold text-uppercase">Full Name</label>
+                    <input type="text" name="full_name" class="form-control bg-light" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" name="user_email" class="form-control" required>
+                    <label class="form-label small fw-bold text-uppercase">Email Address</label>
+                    <input type="email" name="user_email" class="form-control bg-light" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Mobile Number</label>
-                    <input type="text" name="mobile_number" class="form-control" required>
+                    <label class="form-label small fw-bold text-uppercase">Mobile Number</label>
+                    <input type="text" name="mobile_number" class="form-control bg-light" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="user_password" class="form-control" required>
+                    <label class="form-label small fw-bold text-uppercase">Password</label>
+                    <input type="password" name="user_password" class="form-control bg-light" required>
                 </div>
-                <div class="alert alert-info small mb-0">
-                    This user will be a <strong>dedicated admin</strong>. To give an existing user (like an Employer) admin rights, close this and use the "Promote Existing User" form.
+                <div class="alert alert-primary bg-opacity-10 border-0 small mb-0">
+                    <i class="fas fa-info-circle me-1"></i> This creates a <strong>dedicated staff account</strong>. For existing users, use the "Promote User" tool.
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Create Account</button>
+            <div class="modal-footer p-3 bg-light border-0">
+                <button type="button" class="btn btn-link text-muted text-decoration-none me-auto" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary px-4 rounded-pill">Create Account</button>
             </div>
         </form>
     </div>

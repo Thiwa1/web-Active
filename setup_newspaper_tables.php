@@ -19,7 +19,27 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     echo "Table 'newspaper_rates' created.\n";
 
-    // 3. Update paper_ads table to store specific details
+    // 3. Create or Update paper_ads table
+    // Ensure table exists first
+    $pdo->exec("CREATE TABLE IF NOT EXISTS paper_ads (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        ad_content TEXT,
+        width_cm DECIMAL(5,2),
+        height_cm DECIMAL(5,2),
+        price DECIMAL(10,2),
+        payment_slip_path VARCHAR(255),
+        status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        image_path VARCHAR(255),
+        contact_mobile VARCHAR(20),
+        contact_whatsapp VARCHAR(20),
+        newspaper_rate_id INT DEFAULT NULL,
+        columns INT DEFAULT 1
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    echo "Table 'paper_ads' created/checked.\n";
+
+    // Update paper_ads table to store specific details
     // We add columns if they don't exist. Using simplified approach since 'ADD COLUMN IF NOT EXISTS' isn't supported in all MySQL versions directly in one go efficiently without procedure,
     // but try/catch block for each column or checking information_schema is safer.
     // For simplicity in this script, we'll try adding and suppress errors or check first.
