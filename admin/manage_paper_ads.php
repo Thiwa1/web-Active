@@ -70,6 +70,7 @@ $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
             <?php endif; ?>
 
             <li class="nav-item"><a href="manage_paper_ads.php" class="nav-link active"><i class="fas fa-newspaper me-2"></i> Paper Ads</a></li>
+            <li class="nav-item"><a href="manage_rates.php" class="nav-link"><i class="fas fa-tags me-2"></i> Ad Rates</a></li>
             <li class="nav-item"><a href="../logout.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
         </ul>
     </div>

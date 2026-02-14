@@ -9,20 +9,28 @@ include 'layout/header.php';
 $stmt = $pdo->query("SELECT * FROM system_bank_accounts LIMIT 1");
 $bank = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch Price Setting (default 50 LKR/cm2 if not set)
-$stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'paper_ad_rate_per_sq_cm'");
-$stmt->execute();
-$rate = $stmt->fetchColumn() ?: 50;
+// Fetch Newspapers and Rates
+$papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$rates = [];
+foreach ($papers as $p) {
+    $r = $pdo->prepare("SELECT * FROM newspaper_rates WHERE newspaper_id = ?");
+    $r->execute([$p['id']]);
+    $rates[$p['id']] = $r->fetchAll(PDO::FETCH_ASSOC);
+}
 
-// Calculate Next Closing Date (e.g., Next Friday)
+// Fetch VAT setting
+$stmt = $pdo->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'paper_ad_vat_percent'");
+$stmt->execute();
+$vatPercent = $stmt->fetchColumn() ?: 18; // Default 18%
+
+// Calculate Next Closing Date
 $nextFriday = date('Y-m-d', strtotime('next Friday'));
 
 ?>
 
 <style>
-    /* Custom Styling for Lankadeepa Branding */
     .lankadeepa-header {
-        background: #8B0000; /* Dark Red */
+        background: #8B0000;
         color: white;
         border-radius: 20px 20px 0 0;
         background-image: linear-gradient(135deg, #8B0000 0%, #A52A2A 100%);
@@ -37,16 +45,8 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
         border-color: #660000;
         color: white;
     }
-    .text-lankadeepa {
-        color: #8B0000;
-    }
-    .border-lankadeepa {
-        border-color: #8B0000 !important;
-    }
-    .bg-lankadeepa-subtle {
-        background-color: #f8d7da; /* Light Red */
-        color: #842029;
-    }
+    .text-lankadeepa { color: #8B0000; }
+    .bg-lankadeepa-subtle { background-color: #f8d7da; color: #842029; }
 </style>
 
 <div class="container py-5">
@@ -56,13 +56,13 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                 <div class="card-header lankadeepa-header p-4">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <h4 class="mb-1 fw-bold" style="font-family: 'Inter', sans-serif;">ඉරිදා ලංකාදීප</h4>
-                            <p class="mb-0 small opacity-75 text-white">Sunday Lankadeepa Paper Advertisement</p>
+                            <h4 class="mb-1 fw-bold" style="font-family: 'Inter', sans-serif;">Newspaper Advertising</h4>
+                            <p class="mb-0 small opacity-75 text-white">Publish your ad in top national newspapers</p>
                         </div>
                         <i class="fas fa-newspaper fa-2x opacity-50"></i>
                     </div>
                     <div class="mt-3 badge bg-white text-dark shadow-sm">
-                        <i class="far fa-clock me-1"></i> Next Closing: <?= date('M d, Y', strtotime($nextFriday)) ?>
+                        <i class="far fa-clock me-1"></i> Next Deadline: <?= date('M d, Y', strtotime($nextFriday)) ?>
                     </div>
                 </div>
 
@@ -81,50 +81,73 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                     <?php endif; ?>
 
                     <form action="actions/submit_paper_ad.php" method="POST" enctype="multipart/form-data" id="adForm">
-                        <input type="hidden" name="rate" id="rate" value="<?= $rate ?>">
+                        <input type="hidden" id="vat_percent" value="<?= $vatPercent ?>">
+                        <!-- JSON Data for JS -->
+                        <script>
+                            const rateData = <?= json_encode($rates) ?>;
+                        </script>
 
                         <div class="section-block mb-5">
-                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">1. Ad Dimensions</h5>
+                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">1. Select Publication & Rate</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-uppercase">Width (cm)</label>
-                                    <div class="input-group">
-                                        <input type="number" step="0.1" name="width_cm" id="width_cm" class="form-control" required min="1" value="5">
-                                        <span class="input-group-text">cm</span>
-                                    </div>
+                                    <label class="form-label fw-bold small text-uppercase">Newspaper</label>
+                                    <select name="newspaper_id" id="newspaper_id" class="form-select" required onchange="updateRates()">
+                                        <option value="">Select Newspaper...</option>
+                                        <?php foreach($papers as $p): ?>
+                                            <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-uppercase">Ad Type / Description</label>
+                                    <select name="rate_id" id="rate_id" class="form-select" required onchange="calculatePrice()">
+                                        <option value="">Select Newspaper First</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-block mb-5">
+                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">2. Dimensions</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Height (cm)</label>
-                                    <div class="input-group">
-                                        <input type="number" step="0.1" name="height_cm" id="height_cm" class="form-control" required min="1" value="5">
-                                        <span class="input-group-text">cm</span>
-                                    </div>
+                                    <input type="number" step="0.1" name="height_cm" id="height_cm" class="form-control" required min="1" value="5" oninput="calculatePrice()">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-uppercase">Columns</label>
+                                    <input type="number" step="1" name="columns" id="columns" class="form-control" required min="1" value="1" oninput="calculatePrice()">
                                 </div>
                                 <div class="col-12 mt-3">
-                                    <div class="bg-light p-3 rounded-3 border-start border-4 border-lankadeepa text-center">
-                                        <small class="text-muted d-block text-uppercase fw-bold">Total Cost</small>
-                                        <h3 class="text-lankadeepa fw-bold mb-0">LKR <span id="total_price">0.00</span></h3>
-                                        <small class="text-muted">(Rate: LKR <?= number_format($rate, 2) ?> per cm²)</small>
+                                    <div class="bg-light p-3 rounded-3 border-start border-4 border-lankadeepa">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted small">Base Amount:</span>
+                                            <span class="fw-bold small">LKR <span id="base_price">0.00</span></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted small">VAT (<?= $vatPercent ?>%):</span>
+                                            <span class="fw-bold small text-danger">+ LKR <span id="vat_amount">0.00</span></span>
+                                        </div>
+                                        <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                                            <span class="text-uppercase fw-bold text-dark">Total Payable</span>
+                                            <h3 class="text-lankadeepa fw-bold mb-0">LKR <span id="total_price">0.00</span></h3>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="section-block mb-5">
-                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">2. Advertisement Content</h5>
+                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">3. Content & Contact</h5>
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-uppercase">Ad Text / Description</label>
-                                <textarea name="ad_content" class="form-control" rows="5" placeholder="Type your advertisement text here..." required></textarea>
+                                <label class="form-label fw-bold small text-uppercase">Ad Content</label>
+                                <textarea name="ad_content" class="form-control" rows="4" placeholder="Type your advertisement text here..." required></textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-bold small text-uppercase">Upload Artwork (Optional)</label>
+                                <label class="form-label fw-bold small text-uppercase">Upload Design (Optional)</label>
                                 <input type="file" name="ad_image" class="form-control" accept="image/*,application/pdf">
-                                <div class="form-text text-muted">If you have a pre-designed image, upload it here.</div>
                             </div>
-                        </div>
-
-                        <div class="section-block mb-5">
-                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">3. Your Contact Details</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small text-uppercase">Mobile Number</label>
@@ -138,7 +161,7 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                         </div>
 
                         <div class="section-block mb-4">
-                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">4. Payment Verification</h5>
+                            <h5 class="text-lankadeepa fw-bold mb-3 border-bottom pb-2">4. Payment</h5>
                             <div class="mb-4">
                                 <div class="alert bg-lankadeepa-subtle border-0">
                                     <div class="d-flex gap-3">
@@ -160,13 +183,12 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
 
                                 <label class="form-label fw-bold small text-uppercase">Upload Payment Slip</label>
                                 <input type="file" name="payment_slip" class="form-control" required accept="image/*,application/pdf">
-                                <div class="form-text">Please upload a clear photo/scan of your bank transfer slip.</div>
                             </div>
                         </div>
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-lankadeepa btn-lg fw-bold shadow-sm">
-                                <i class="fas fa-paper-plane me-2"></i> Submit to Lankadeepa
+                                <i class="fas fa-paper-plane me-2"></i> Submit Advertisement
                             </button>
                         </div>
 
@@ -178,23 +200,40 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
 </div>
 
 <script>
-    const widthInput = document.getElementById('width_cm');
-    const heightInput = document.getElementById('height_cm');
-    const priceDisplay = document.getElementById('total_price');
-    const rate = parseFloat(document.getElementById('rate').value);
+    function updateRates() {
+        const paperId = document.getElementById('newspaper_id').value;
+        const rateSelect = document.getElementById('rate_id');
+        rateSelect.innerHTML = '<option value="">Select Ad Type...</option>';
 
-    function calculatePrice() {
-        const w = parseFloat(widthInput.value) || 0;
-        const h = parseFloat(heightInput.value) || 0;
-        const total = (w * h * rate).toFixed(2);
-        priceDisplay.textContent = total;
+        if (paperId && rateData[paperId]) {
+            rateData[paperId].forEach(rate => {
+                const option = document.createElement('option');
+                option.value = rate.id;
+                option.dataset.rate = rate.rate;
+                option.textContent = `${rate.description} - LKR ${rate.rate}`;
+                rateSelect.appendChild(option);
+            });
+        }
+        calculatePrice();
     }
 
-    widthInput.addEventListener('input', calculatePrice);
-    heightInput.addEventListener('input', calculatePrice);
+    function calculatePrice() {
+        const rateSelect = document.getElementById('rate_id');
+        const selectedOption = rateSelect.options[rateSelect.selectedIndex];
+        const rate = selectedOption ? parseFloat(selectedOption.dataset.rate) || 0 : 0;
 
-    // Init
-    calculatePrice();
+        const h = parseFloat(document.getElementById('height_cm').value) || 0;
+        const c = parseFloat(document.getElementById('columns').value) || 0;
+        const vatPercent = parseFloat(document.getElementById('vat_percent').value) || 0;
+
+        const base = rate * h * c;
+        const vat = base * (vatPercent / 100);
+        const total = base + vat;
+
+        document.getElementById('base_price').textContent = base.toFixed(2);
+        document.getElementById('vat_amount').textContent = vat.toFixed(2);
+        document.getElementById('total_price').textContent = total.toFixed(2);
+    }
 </script>
 
 <?php include 'layout/footer.php'; ?>
