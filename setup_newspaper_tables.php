@@ -35,7 +35,8 @@ try {
         contact_mobile VARCHAR(20),
         contact_whatsapp VARCHAR(20),
         newspaper_rate_id INT DEFAULT NULL,
-        columns INT DEFAULT 1
+        columns INT DEFAULT 1,
+        closing_date DATE DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     echo "Table 'paper_ads' created/checked.\n";
 
@@ -46,7 +47,8 @@ try {
 
     $cols = [
         "ADD COLUMN newspaper_rate_id INT DEFAULT NULL",
-        "ADD COLUMN columns INT DEFAULT 1"
+        "ADD COLUMN columns INT DEFAULT 1",
+        "ADD COLUMN closing_date DATE DEFAULT NULL"
     ];
 
     foreach ($cols as $col) {
