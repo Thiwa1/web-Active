@@ -25,9 +25,9 @@ if (isset($_POST['update_status'])) {
     exit();
 }
 
-// Ensure schema is valid (Explicit check for closing_date)
+// Ensure schema is valid (Explicit check for closing_date and ad_columns)
 try {
-    $checkCol = $pdo->query("SHOW COLUMNS FROM paper_ads LIKE 'closing_date'")->fetch();
+    $checkCol = $pdo->query("SHOW COLUMNS FROM paper_ads LIKE 'ad_columns'")->fetch();
     if (!$checkCol && file_exists('../setup_newspaper_tables.php')) {
         ob_start();
         include '../setup_newspaper_tables.php';
@@ -150,10 +150,14 @@ try {
                                     </td>
                                     <td style="max-width: 300px;">
                                         <!-- Safe Display Logic for Old vs New Data -->
+                                        <?php
+                                            // Handle renamed column 'ad_columns' vs old 'columns'
+                                            $colCount = $ad['ad_columns'] ?? $ad['columns'] ?? 1;
+                                        ?>
                                         <?php if(!empty($ad['height_cm'])): ?>
                                             <div class="small fw-bold mb-1">
-                                                Size: <?= $ad['height_cm'] ?>cm x <?= ($ad['columns'] ?? 1) * 4 ?>cm
-                                                <span class="text-muted fw-normal">(<?= $ad['columns'] ?? 1 ?> Col)</span>
+                                                Size: <?= $ad['height_cm'] ?>cm x <?= $colCount * 4 ?>cm
+                                                <span class="text-muted fw-normal">(<?= $colCount ?> Col)</span>
                                             </div>
                                         <?php else: ?>
                                             <div class="small fw-bold mb-1">Dim: <?= $ad['width_cm'] ?> x <?= $ad['height_cm'] ?> cm</div>

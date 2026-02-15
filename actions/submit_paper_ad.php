@@ -75,8 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // I will map 'width_cm' to 0 or null, or just store for legacy/compatibility if needed.
         // Actually, let's just use the correct columns.
 
+        // Note: 'ad_columns' renamed from 'columns' to avoid reserved keyword issues
         $sql = "INSERT INTO paper_ads (
-                    user_id, newspaper_rate_id, height_cm, columns, price, ad_content, image_path,
+                    user_id, newspaper_rate_id, height_cm, ad_columns, price, ad_content, image_path,
                     contact_mobile, contact_whatsapp, payment_slip_path, status, closing_date, width_cm
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, ?)";
 
