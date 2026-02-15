@@ -25,6 +25,18 @@ if (isset($_POST['update_status'])) {
     exit();
 }
 
+// Ensure schema is valid (Explicit check for closing_date)
+try {
+    $checkCol = $pdo->query("SHOW COLUMNS FROM paper_ads LIKE 'closing_date'")->fetch();
+    if (!$checkCol && file_exists('../setup_newspaper_tables.php')) {
+        ob_start();
+        include '../setup_newspaper_tables.php';
+        ob_end_clean();
+    }
+} catch (Exception $e) {
+    // Ignore, let the main query handle fatal schema errors
+}
+
 // Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
 $sql = "SELECT p.*, u.full_name, u.user_email
