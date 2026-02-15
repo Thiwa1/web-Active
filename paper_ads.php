@@ -232,6 +232,13 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                             </div>
                         </div>
 
+                        <div class="mb-4">
+                            <div class="alert alert-warning border-warning shadow-sm">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span class="fw-bold">සියලුම තොරතුරු අපවෙත ලැබීමෙන් පසු අපි ඔබව සම්බන්දකරගනු ලැබේ වැඩි විස්තර සදහා 0713534183 අමතන්න.</span>
+                            </div>
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-lankadeepa btn-lg fw-bold shadow-sm">
                                 <i class="fas fa-paper-plane me-2"></i> Submit Advertisement
