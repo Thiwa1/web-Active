@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     exit();
 }
 
+// CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $job_id = $_GET['id'] ?? null;
 
 if (!$job_id) {
@@ -179,9 +184,13 @@ try {
             <i class="fas fa-trash me-2"></i>Remove Ad
         </button>
         <?php if($job['Approved'] == 0): ?>
-            <button class="btn btn-primary px-5 rounded-pill shadow" onclick="window.location.href='actions/approve_job.php?id=<?= $job_id ?>'">
-                <i class="fas fa-check-circle me-2"></i>Authorize & Publish
-            </button>
+            <form action="actions/approve_job.php" method="POST" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="id" value="<?= $job_id ?>">
+                <button type="submit" class="btn btn-primary px-5 rounded-pill shadow">
+                    <i class="fas fa-check-circle me-2"></i>Authorize & Publish
+                </button>
+            </form>
         <?php else: ?>
              <button class="btn btn-secondary px-5 rounded-pill shadow" onclick="window.location.href='actions/unapprove_job.php?id=<?= $job_id ?>'">
                 <i class="fas fa-pause-circle me-2"></i>Take Offline

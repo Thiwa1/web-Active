@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     exit();
 }
 
+// CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 try {
     // 1. Analytics Fetching
     $totalJobs = $pdo->query("SELECT COUNT(*) FROM advertising_table")->fetchColumn();
@@ -153,7 +158,11 @@ try {
                             <div class="d-flex justify-content-end gap-2">
                                 <?php if(!$j['is_deleted']): ?>
                                     <?php if($j['Approved'] == 0): ?>
-                                        <a href="actions/approve_job.php?id=<?= $j['id'] ?>" class="btn btn-sm btn-success fw-bold px-3 py-1 d-flex align-items-center"><i class="fas fa-check me-2"></i> Approve</a>
+                                        <form action="actions/approve_job.php" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                            <input type="hidden" name="id" value="<?= $j['id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-success fw-bold px-3 py-1 d-flex align-items-center"><i class="fas fa-check me-2"></i> Approve</button>
+                                        </form>
                                     <?php endif; ?>
                                     <button onclick="copyJobLink(<?= $j['id'] ?>)" class="btn-icon btn btn-light text-info border" title="Copy Public Link"><i class="fas fa-link"></i></button>
                                     <a href="view_job_details.php?id=<?= $j['id'] ?>" class="btn-icon btn btn-light text-primary border"><i class="fas fa-edit"></i></a>
