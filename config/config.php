@@ -43,6 +43,7 @@ try {
     // 5. Handle Connection Errors professionally
     // In production, log the error to a file instead of echoing it
     error_log("Database connection failed: " . $e->getMessage());
+    die("A database connection error occurred. Please try again later.");
     die("Database connection failed. Please try again later.");
 }
 ?>
