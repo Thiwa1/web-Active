@@ -193,8 +193,6 @@ try {
                     $update->execute([$fullPath, $row[$task['id_col']]]);
                 }
             }
-        } else {
-            // echo "<p class='text-muted'>No pending migrations for $table ($blob).</p>";
         }
     }
 
