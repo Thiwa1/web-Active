@@ -6,7 +6,12 @@ if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'em
     die("Access Denied");
 }
 
-$job_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+// CSRF Validation
+if (empty($_SESSION['csrf_token']) || empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    die("Security Validation Failed.");
+}
+
+$job_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $user_id = $_SESSION['user_id'];
 
 if ($job_id > 0) {
