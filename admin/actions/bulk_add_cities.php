@@ -26,29 +26,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Parse Input: Split by newline, comma, or pipe
     $cities = preg_split('/[\r\n,]+/', $raw_cities);
-    $added_count = 0;
-    $skipped_count = 0;
 
+    $valid_cities = [];
     foreach ($cities as $city) {
         $city = trim($city);
-        // Remove extra spaces inside name? Maybe not.
-        if (empty($city)) continue;
+        if (!empty($city)) {
+            $valid_cities[] = $city;
+        }
+    }
 
-        try {
-            // Check existence first to avoid auto-increment gaps on failure (optional but cleaner)
-            // Or just try insert. Using Try/Catch for duplicate key violation.
-            $stmt = $pdo->prepare("INSERT INTO city_table (City, City_link) VALUES (?, ?)");
-            $stmt->execute([$city, $district_id]);
-            $added_count++;
-        } catch (PDOException $e) {
-            // Error 23000 is Integrity Constraint Violation (Duplicate Entry)
-            if ($e->getCode() == '23000') {
-                $skipped_count++;
-            } else {
-                // Log real errors?
+    // Deduplicate array internally to avoid redundant inserts in same batch
+    $valid_cities = array_unique($valid_cities);
+
+    $added_count = 0;
+    $skipped_count = 0;
+    $total_attempted = count($valid_cities);
+
+    if ($total_attempted > 0) {
+        $chunks = array_chunk($valid_cities, 500);
+        foreach ($chunks as $chunk) {
+            $placeholders = [];
+            $params = [];
+            foreach ($chunk as $city) {
+                $placeholders[] = '(?, ?)';
+                $params[] = $city;
+                $params[] = $district_id;
+            }
+
+            $sql = "INSERT IGNORE INTO city_table (City, City_link) VALUES " . implode(', ', $placeholders);
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                // rowCount() returns rows inserted. INSERT IGNORE returns 0 for duplicates.
+                $added_count += $stmt->rowCount();
+            } catch (PDOException $e) {
                 error_log("Bulk City Add Error: " . $e->getMessage());
             }
         }
+        $skipped_count = $total_attempted - $added_count;
     }
 
     $msg = "Added $added_count cities.";
