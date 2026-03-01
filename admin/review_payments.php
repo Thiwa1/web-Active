@@ -31,7 +31,7 @@ $sql = "SELECT p.*, e.employer_name, u.user_email as emp_email,
     $payments = $pdo->query($sql)->fetchAll();
 
 } catch (PDOException $e) {
-    die("Data Integrity Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Data Integrity Error:  A database error occurred.")); exit();
 }
 ?>
 

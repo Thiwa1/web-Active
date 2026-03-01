@@ -4,7 +4,7 @@ require_once '../config/config.php';
 
 // Security: Admin Only
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Unauthorized Access");
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>Error:</strong> " . htmlspecialchars("Unauthorized Access") . " <a href='../login.php'>Login here</a></div>"; exit();
 }
 
 echo "<html><body style='font-family: sans-serif; padding: 20px;'>";

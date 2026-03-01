@@ -3,7 +3,7 @@ require_once '../config/config.php';
 session_start();
 
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>Error:</strong> " . htmlspecialchars("Access Denied") . " <a href='../login.php'>Login here</a></div>"; exit();
 }
 
 try {
@@ -45,6 +45,6 @@ try {
     echo "<a href='chat_manager.php'>Go to Chat Manager</a>";
 
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>System Error:</strong> " . htmlspecialchars("Error: ") . " A database error occurred. <a href='dashboard.php'>Back to Dashboard</a></div>"; exit();
 }
 ?>

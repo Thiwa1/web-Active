@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>Error:</strong> " . htmlspecialchars("Access Denied") . " <a href='../login.php'>Login here</a></div>"; exit();
 }
 
 require_once __DIR__ . '/../config/config.php';

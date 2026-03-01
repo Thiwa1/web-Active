@@ -81,13 +81,13 @@ try {
                 $stmt->execute($params);
                 $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (Exception $ex) {
-                die("System Error: Database schema mismatch. Please run setup scripts. " . $ex->getMessage());
+                header("Location: dashboard.php?error=" . urlencode("System Error: Database schema mismatch. Please run setup scripts.  A database error occurred.")); exit();
             }
         } else {
-            die("System Error: Missing setup script.");
+            header("Location: dashboard.php?error=" . urlencode("System Error: Missing setup script.")); exit();
         }
     } else {
-        die("Database Error: " . $e->getMessage());
+        header("Location: dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }
 

@@ -5,7 +5,7 @@ require_once '../../config/mail_helper.php';
 require_once '../../classes/NotifySMS.php';
 
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 $limit = isset($_POST['limit']) ? (int)$_POST['limit'] : 50;
@@ -108,7 +108,7 @@ try {
 } catch (PDOException $e) {
     // If column missing, give hint
     if (strpos($e->getMessage(), 'last_alert_sent') !== false) {
-        die("Database Update Required: Please run the SQL command to add 'last_alert_sent' column.");
+        header("Location: ../dashboard.php?error=" . urlencode("Database Update Required: Please run the SQL command to add 'last_alert_sent' column.")); exit();
     }
-    die("System Error: " . $e->getMessage());
+    header("Location: ../dashboard.php?error=" . urlencode("System Error:  A database error occurred.")); exit();
 }
