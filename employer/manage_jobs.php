@@ -14,6 +14,11 @@ if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'em
 
 $user_id = $_SESSION['user_id'];
 
+// CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Direct Access Prevention: Redirect to Dashboard if not AJAX
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
     $queryParams = $_GET;
@@ -206,9 +211,9 @@ try {
                                             <a href="#" onclick="loadContent('view_applications?job_id=<?= $job['id'] ?>'); return false;" class="btn btn-sm btn-outline-primary rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" title="View Applicants">
                                                 <i class="fas fa-users"></i>
                                             </a>
-                                            <a href="actions/delete_job.php?id=<?= $job['id'] ?>" class="btn btn-sm btn-outline-danger rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" onclick="return confirm('Archive this vacancy?');" title="Delete">
+                                            <button onclick="confirmEmployerArchive(<?= $job['id'] ?>)" class="btn btn-sm btn-outline-danger rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" title="Delete">
                                                 <i class="fas fa-trash-can"></i>
-                                            </a>
+                                            </button>
                                         <?php else: ?>
                                             <span class="text-muted small">Archived</span>
                                         <?php endif; ?>
@@ -230,6 +235,31 @@ try {
         </div>
     </div>
 </div>
+<script>
+function confirmEmployerArchive(id) {
+    if(confirm('Archive this vacancy?')) {
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'actions/delete_job.php';
+
+        let idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'id';
+        idInput.value = id;
+
+        let csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
+
+        form.appendChild(idInput);
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
 <!-- Initialize Tooltips -->
 <script>
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
