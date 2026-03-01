@@ -32,18 +32,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $added = 0;
     $skipped = 0;
 
+    // Clean and filter items
+    $cleaned_items = [];
     foreach ($items as $item) {
         $item = trim($item);
-        if (empty($item)) continue;
+        if ($item !== '') {
+            $cleaned_items[] = $item;
+        }
+    }
 
-        try {
-            $stmt = $pdo->prepare("INSERT INTO $table ($col) VALUES (?)");
-            $stmt->execute([$item]);
-            $added++;
-        } catch (PDOException $e) {
-            // Check for duplicate entry (23000)
-            if ($e->getCode() == '23000') {
-                $skipped++;
+    $total_cleaned = count($cleaned_items);
+    $unique_items = array_unique($cleaned_items);
+    $skipped += ($total_cleaned - count($unique_items)); // Skip duplicates in input
+
+    if (!empty($unique_items)) {
+        // Chunk items to avoid exceeding MySQL placeholder limits
+        $chunks = array_chunk($unique_items, 500);
+
+        foreach ($chunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '(?)'));
+            $sql = "INSERT IGNORE INTO $table ($col) VALUES $placeholders";
+
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($chunk);
+                $inserted = $stmt->rowCount();
+                $added += $inserted;
+                $skipped += (count($chunk) - $inserted);
+            } catch (PDOException $e) {
+                // If the entire chunk fails for some other reason, mark them all as skipped
+                // to maintain the original contract of not crashing on inserts.
+                $skipped += count($chunk);
             }
         }
     }

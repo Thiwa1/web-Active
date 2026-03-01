@@ -46,9 +46,9 @@ try {
 // Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
 
-// Strict allowlist validation for status filter to prevent unexpected inputs/SQL injection
+// Validate the status filter against an allowlist to prevent unexpected input
 $allowedStatuses = ['All', 'Pending', 'Approved', 'Rejected'];
-if (!in_array($statusFilter, $allowedStatuses, true)) {
+if (!is_string($statusFilter) || !in_array($statusFilter, $allowedStatuses, true)) {
     $statusFilter = 'All';
 }
 

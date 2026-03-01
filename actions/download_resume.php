@@ -1,7 +1,6 @@
 <?php
 session_start();
-// Fix: Use correct relative path to config
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 if (!isset($_SESSION['user_id'])) die("Denied");
 
