@@ -38,6 +38,7 @@ try {
 } catch (PDOException $e) {
     // 5. Handle Connection Errors professionally
     // In production, log the error to a file instead of echoing it
-    die("Database connection failed: " . $e->getMessage());
+    error_log("Database connection failed: " . $e->getMessage());
+    die("A secure connection error occurred. Please try again later.");
 }
 ?>
