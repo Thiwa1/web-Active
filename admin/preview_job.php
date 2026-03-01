@@ -16,7 +16,7 @@ if (empty($_SESSION['csrf_token'])) {
 $job_id = $_GET['id'] ?? null;
 
 if (!$job_id) {
-    die("Invalid Job ID.");
+    header("Location: dashboard.php?error=" . urlencode("Invalid Job ID.")); exit();
 }
 
 try {
@@ -27,9 +27,9 @@ try {
     $stmt->execute([$job_id]);
     $job = $stmt->fetch();
 
-    if (!$job) { die("Job not found."); }
+    if (!$job) { header("Location: dashboard.php?error=" . urlencode("Job not found.")); exit(); }
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
 }
 ?>
 
@@ -202,22 +202,22 @@ try {
 <script>
 function confirmDelete(id) {
     if(confirm('SECURITY WARNING: Are you sure you want to permanently delete this job post? This action is recorded in the admin log.')) {
-        const form = document.createElement('form');
+        let form = document.createElement('form');
         form.method = 'POST';
         form.action = 'actions/delete_job.php';
 
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
-        form.appendChild(csrfInput);
-
-        const idInput = document.createElement('input');
+        let idInput = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'id';
         idInput.value = id;
-        form.appendChild(idInput);
 
+        let csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
+
+        form.appendChild(idInput);
+        form.appendChild(csrfInput);
         document.body.appendChild(form);
         form.submit();
     }

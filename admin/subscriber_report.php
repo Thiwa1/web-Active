@@ -28,7 +28,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    die("Intelligence Engine Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Intelligence Engine Error:  A database error occurred.")); exit();
 }
 ?>
 

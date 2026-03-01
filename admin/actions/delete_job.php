@@ -4,7 +4,8 @@ require_once '../../config/config.php';
 
 // 1. Security Check: Only allow Admins to proceed
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../manage_jobs.php");
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die("Method Not Allowed");
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
     http_response_code(403);
     die("CSRF Token Validation Failed");
 }
@@ -82,10 +83,10 @@ if (isset($_POST['id'])) {
     } catch (PDOException $e) {
         // If anything goes wrong, cancel all changes
         $pdo->rollBack();
-        die("Error archiving/deleting job: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Error archiving/deleting job:  A database error occurred.")); exit();
     }
 } else {
-    // Unauthorized access or missing ID
+    // Missing ID
     header("Location: ../manage_jobs.php");
     exit();
 }

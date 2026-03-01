@@ -6,6 +6,10 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     header("Location: ../login.php"); exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $job_id = $_GET['id'] ?? null;
 if (!$job_id) { header("Location: manage_jobs.php"); exit(); }
 
@@ -18,7 +22,7 @@ try {
     $stmt->execute([$job_id]);
     $job = $stmt->fetch();
 
-    if (!$job) { die("Record Expired or Not Found."); }
+    if (!$job) { header("Location: dashboard.php?error=" . urlencode("Record Expired or Not Found.")); exit(); }
 
     // Logic: Calculate Days Remaining
     $closing_date = new DateTime($job['Closing_date']);
@@ -26,7 +30,7 @@ try {
     $days_left = $today->diff($closing_date)->format("%r%a");
 
 } catch (PDOException $e) {
-    die("Engine Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Engine Error:  A database error occurred.")); exit();
 }
 ?>
 
@@ -187,17 +191,17 @@ function confirmDelete(id) {
         form.method = 'POST';
         form.action = 'actions/delete_job.php';
 
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
-        form.appendChild(csrfInput);
-
         const idInput = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'id';
         idInput.value = id;
         form.appendChild(idInput);
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
+        form.appendChild(csrfInput);
 
         document.body.appendChild(form);
         form.submit();

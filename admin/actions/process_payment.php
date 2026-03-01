@@ -9,6 +9,11 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF Token Validation Failed");
+    }
+
     $payment_id = $_POST['payment_id'];
     $action = $_POST['action']; 
     $reason = $_POST['reason'] ?? '';
@@ -35,10 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtAds->execute([$payment_id]);
             $linkedAds = $stmtAds->fetchAll(PDO::FETCH_ASSOC);
 
-            foreach ($linkedAds as $job) {
-                // Activate Ad
-                $pdo->prepare("UPDATE advertising_table SET Approved = 1 WHERE id = ?")->execute([$job['id']]);
+            $jobIds = array_column($linkedAds, 'id');
+            if (!empty($jobIds)) {
+                $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
+                $pdo->prepare("UPDATE advertising_table SET Approved = 1 WHERE id IN ($placeholders)")->execute($jobIds);
+            }
 
+            foreach ($linkedAds as $job) {
                 // 4. FIXED SMS LOGIC: Get Mobile/WhatsApp from user_table
                 // We JOIN employer_profile_seeker -> user_table to get the actual contact numbers
                 $sqlSubscribers = "SELECT ut.id as user_id, ut.mobile_number, ut.WhatsApp_number 
@@ -82,6 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         if ($pdo->inTransaction()) { $pdo->rollBack(); }
-        die("Database Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }

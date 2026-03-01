@@ -6,14 +6,9 @@ if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'em
     die("Access Denied");
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die("Method Not Allowed");
-}
-
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
-    http_response_code(403);
-    die("CSRF Token Validation Failed");
+// CSRF Validation
+if (empty($_SESSION['csrf_token']) || empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    die("Security Validation Failed.");
 }
 
 $job_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;

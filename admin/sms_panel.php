@@ -30,7 +30,7 @@ try {
     ")->fetchAll();
 
 } catch (Exception $e) {
-    die("Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
 }
 ?>
 

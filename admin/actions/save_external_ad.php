@@ -3,7 +3,7 @@ session_start();
 require_once '../../config/config.php';
 
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$title, $url, $media_name, $media_type, $target_district, $target_category, $desc]);
         header("Location: ../external_ads.php?msg=Promo Created");
     } catch (Exception $e) {
-        die("Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
     }
 }
 ?>
