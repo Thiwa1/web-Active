@@ -18,37 +18,36 @@ if (isset($_GET['id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'
         $jobData = $fetchStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($jobData) {
-            // 3. INSERT the data into the 'advertising_table_deleted' table
-            // Based on your schema: we map columns and add 'deleted_by'
+            // 3. Dynamic Column Discovery
+            $sourceStmt = $pdo->query("SHOW COLUMNS FROM advertising_table");
+            $sourceCols = $sourceStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $targetStmt = $pdo->query("SHOW COLUMNS FROM advertising_table_deleted");
+            $targetCols = $targetStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // Find common columns, exclude 'id', 'deleted_by', 'deleted_date'
+            $commonCols = array_intersect($sourceCols, $targetCols);
+            $excludeCols = ['id', 'deleted_by', 'deleted_date'];
+            $insertCols = array_diff($commonCols, $excludeCols);
+
+            $colsStr = implode(", ", $insertCols);
+
+            // Build the parameterized insert query
+            $placeholders = implode(', ', array_fill(0, count($insertCols), '?'));
+
             $insertSql = "INSERT INTO advertising_table_deleted (
-                link_to_employer_profile, Opening_date, Closing_date, Industry, 
-                Job_category, Job_role, Img, City, job_description, District, 
-                Apply_by_email, Apply_by_system, apply_WhatsApp, Apply_by_email_address, 
-                apply_WhatsApp_No, Approved, Rejection_comment, rejection_reason, deleted_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $colsStr, deleted_by, deleted_date
+            ) VALUES ($placeholders, ?, NOW())";
+
+            // Prepare parameters dynamically
+            $params = [];
+            foreach ($insertCols as $col) {
+                $params[] = $jobData[$col] ?? null;
+            }
+            $params[] = $deleted_by;
 
             $insertStmt = $pdo->prepare($insertSql);
-            $insertStmt->execute([
-                $jobData['link_to_employer_profile'],
-                $jobData['Opening_date'],
-                $jobData['Closing_date'],
-                $jobData['Industry'],
-                $jobData['Job_category'],
-                $jobData['Job_role'],
-                $jobData['Img'],
-                $jobData['City'],
-                $jobData['job_description'],
-                $jobData['District'],
-                $jobData['Apply_by_email'],
-                $jobData['Apply_by_system'],
-                $jobData['apply_WhatsApp'],
-                $jobData['Apply_by_email_address'],
-                $jobData['apply_WhatsApp_No'],
-                $jobData['Approved'],
-                $jobData['Rejection_comment'],
-                $jobData['rejection_reason'],
-                $deleted_by
-            ]);
+            $insertStmt->execute($params);
 
             // 4. DELETE from the active table after successful copy
             $deleteStmt = $pdo->prepare("DELETE FROM advertising_table WHERE id = ?");
