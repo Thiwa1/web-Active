@@ -8,7 +8,7 @@
 $host    = getenv('DB_HOST') ?: 'localhost';
 $db_name = getenv('DB_NAME') ?: 'tiptromr_vacancies';
 $db_user = getenv('DB_USER') ?: 'root';      // Default to root for local dev
-$db_pass = getenv('DB_PASS') ?: '';          // Default to empty for local dev
+$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''; // Support empty password
 $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 // 2. Data Source Name
