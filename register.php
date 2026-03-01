@@ -3,6 +3,10 @@ require_once 'config/config.php';
 require_once 'classes/GoogleAuth.php';
 session_start();
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $google = new GoogleAuth($pdo);
 $authUrl = $google->getAuthUrl('Employee');
 
@@ -52,6 +56,7 @@ $extraCss = '<style>
                 </div>
 
                 <form action="actions/register_action.php" method="POST" id="regForm">
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token']; ?>">
                     <input type="hidden" name="recaptcha_token" id="recaptcha_token">
                     <div class="row g-4">
                         <div class="col-12"><h5 class="fw-bold border-start border-4 border-primary ps-3">Account Identity</h5></div>
