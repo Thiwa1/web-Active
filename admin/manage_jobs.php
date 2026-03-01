@@ -192,7 +192,24 @@ document.getElementById('jobSearch').addEventListener('keyup', function() {
 function confirmArchive(id, isPaid) {
     let msg = isPaid ? "CRITICAL: This is a PAID job. Are you sure you want to archive it?" : "Archive this job posting?";
     if(confirm(msg)) {
-        window.location.href = 'actions/delete_job.php?id=' + id;
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'actions/delete_job.php';
+
+        let idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'id';
+        idInput.value = id;
+
+        let csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
+
+        form.appendChild(idInput);
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 

@@ -19,15 +19,27 @@ $activeTab = 'paper_ads';
 if (isset($_POST['update_status'])) {
     $id = (int)$_POST['ad_id'];
     $status = $_POST['status'];
-    $stmt = $pdo->prepare("UPDATE paper_ads SET status = ? WHERE id = ?");
-    $stmt->execute([$status, $id]);
+
+    // Strict allowlist validation for status updates
+    $allowedUpdateStatuses = ['Pending', 'Approved', 'Rejected'];
+    if (in_array($status, $allowedUpdateStatuses, true)) {
+        $stmt = $pdo->prepare("UPDATE paper_ads SET status = ? WHERE id = ?");
+        $stmt->execute([$status, $id]);
+    }
+
     header("Location: manage_paper_ads.php?msg=Status Updated");
     exit();
 }
 
 // Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
-$schemaError = false;
+
+// Validate the status filter against an allowlist to prevent unexpected input
+$allowedStatuses = ['All', 'Pending', 'Approved', 'Rejected'];
+if (!is_string($statusFilter) || !in_array($statusFilter, $allowedStatuses, true)) {
+    $statusFilter = 'All';
+}
+
 $sql = "SELECT p.*, u.full_name, u.user_email
         FROM paper_ads p
         LEFT JOIN user_table u ON p.user_id = u.id";
