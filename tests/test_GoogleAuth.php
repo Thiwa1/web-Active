@@ -41,7 +41,8 @@ class GoogleAuthTest {
         $this->testIsConfiguredDbException();
         $this->testIsConfiguredViaReflection();
 
-        $this->testGetAuthUrlConfigured();
+        $this->testGetAuthUrlConfiguredWithState();
+        $this->testGetAuthUrlConfiguredWithoutState();
         $this->testGetAuthUrlNotConfigured();
 
         echo "\nTest Summary:\n";
@@ -147,7 +148,7 @@ class GoogleAuthTest {
         $this->assertEqual(true, $auth->isConfigured(), "isConfigured - Configured via Reflection");
     }
 
-    private function testGetAuthUrlConfigured() {
+    private function testGetAuthUrlConfiguredWithState() {
         $pdo = new MockPDO([
             'google_client_id' => 'id_123',
             'google_client_secret' => 'secret_123',
@@ -156,10 +157,43 @@ class GoogleAuthTest {
         $auth = new GoogleAuth($pdo);
         $url = $auth->getAuthUrl('state_456');
 
-        $this->assertEqual(true, strpos($url, 'https://accounts.google.com/o/oauth2/v2/auth?') === 0, "getAuthUrl - Base URL correct");
-        $this->assertEqual(true, strpos($url, 'client_id=id_123') !== false, "getAuthUrl - Contains client_id");
-        $this->assertEqual(true, strpos($url, 'redirect_uri=http%3A%2F%2Flocalhost%2Fcallback') !== false, "getAuthUrl - Contains redirect_uri");
-        $this->assertEqual(true, strpos($url, 'state=state_456') !== false, "getAuthUrl - Contains state");
+        $parsedUrl = parse_url($url);
+        $this->assertEqual('https', $parsedUrl['scheme'] ?? '', "getAuthUrlWithState - Correct scheme");
+        $this->assertEqual('accounts.google.com', $parsedUrl['host'] ?? '', "getAuthUrlWithState - Correct host");
+        $this->assertEqual('/o/oauth2/v2/auth', $parsedUrl['path'] ?? '', "getAuthUrlWithState - Correct path");
+
+        parse_str($parsedUrl['query'] ?? '', $queryParams);
+        $this->assertEqual('code', $queryParams['response_type'] ?? '', "getAuthUrlWithState - Correct response_type");
+        $this->assertEqual('id_123', $queryParams['client_id'] ?? '', "getAuthUrlWithState - Correct client_id");
+        $this->assertEqual('http://localhost/callback', $queryParams['redirect_uri'] ?? '', "getAuthUrlWithState - Correct redirect_uri");
+        $this->assertEqual('email profile openid', $queryParams['scope'] ?? '', "getAuthUrlWithState - Correct scope");
+        $this->assertEqual('online', $queryParams['access_type'] ?? '', "getAuthUrlWithState - Correct access_type");
+        $this->assertEqual('select_account', $queryParams['prompt'] ?? '', "getAuthUrlWithState - Correct prompt");
+        $this->assertEqual('state_456', $queryParams['state'] ?? '', "getAuthUrlWithState - Correct state");
+    }
+
+    private function testGetAuthUrlConfiguredWithoutState() {
+        $pdo = new MockPDO([
+            'google_client_id' => 'id_123',
+            'google_client_secret' => 'secret_123',
+            'google_redirect_uri' => 'http://localhost/callback'
+        ]);
+        $auth = new GoogleAuth($pdo);
+        $url = $auth->getAuthUrl();
+
+        $parsedUrl = parse_url($url);
+        $this->assertEqual('https', $parsedUrl['scheme'] ?? '', "getAuthUrlWithoutState - Correct scheme");
+        $this->assertEqual('accounts.google.com', $parsedUrl['host'] ?? '', "getAuthUrlWithoutState - Correct host");
+        $this->assertEqual('/o/oauth2/v2/auth', $parsedUrl['path'] ?? '', "getAuthUrlWithoutState - Correct path");
+
+        parse_str($parsedUrl['query'] ?? '', $queryParams);
+        $this->assertEqual('code', $queryParams['response_type'] ?? '', "getAuthUrlWithoutState - Correct response_type");
+        $this->assertEqual('id_123', $queryParams['client_id'] ?? '', "getAuthUrlWithoutState - Correct client_id");
+        $this->assertEqual('http://localhost/callback', $queryParams['redirect_uri'] ?? '', "getAuthUrlWithoutState - Correct redirect_uri");
+        $this->assertEqual('email profile openid', $queryParams['scope'] ?? '', "getAuthUrlWithoutState - Correct scope");
+        $this->assertEqual('online', $queryParams['access_type'] ?? '', "getAuthUrlWithoutState - Correct access_type");
+        $this->assertEqual('select_account', $queryParams['prompt'] ?? '', "getAuthUrlWithoutState - Correct prompt");
+        $this->assertEqual(false, isset($queryParams['state']), "getAuthUrlWithoutState - State should not be set");
     }
 
     private function testGetAuthUrlNotConfigured() {
