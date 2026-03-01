@@ -100,18 +100,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // --- STEP C: Create Placeholder Slots for Extra Units ---
         if ($unit_count > 1) {
-            // Prepare a generic "Draft" insert for the remaining units
-            $sqlDraft = "INSERT INTO advertising_table 
+            $num_drafts = $unit_count - 1;
+
+            // 1. Bulk insert drafts
+            $placeholders = implode(', ', array_fill(0, $num_drafts, "(?, 'Purchased Ad Slot (Pending Details)', 'Please edit this advertisement to fill in your job details.', 0)"));
+            $sqlDraftBatch = "INSERT INTO advertising_table
                          (link_to_employer_profile, Job_role, job_description, Approved) 
-                         VALUES (?, 'Purchased Ad Slot (Pending Details)', 'Please edit this advertisement to fill in your job details.', 0)";
-            $stmtDraft = $pdo->prepare($sqlDraft);
+                         VALUES " . $placeholders;
+            $stmtDraftBatch = $pdo->prepare($sqlDraftBatch);
 
-            for ($i = 1; $i < $unit_count; $i++) {
-                $stmtDraft->execute([$link_to_emp]);
-                $extra_ad_id = $pdo->lastInsertId();
+            $draftParams = array_fill(0, $num_drafts, $link_to_emp);
+            $stmtDraftBatch->execute($draftParams);
 
-                // Link these extra slots to the SAME payment slip
-                $stmtLink->execute([$new_payment_id, $extra_ad_id, $is_paid]);
+            // 2. Fetch the newly inserted IDs
+            // We order by id DESC and limit to $num_drafts to get exactly the ones just inserted
+            $stmtIds = $pdo->prepare("SELECT id FROM advertising_table WHERE link_to_employer_profile = ? ORDER BY id DESC LIMIT ?");
+            $stmtIds->bindValue(1, $link_to_emp, PDO::PARAM_INT);
+            $stmtIds->bindValue(2, $num_drafts, PDO::PARAM_INT);
+            $stmtIds->execute();
+            $new_ids = $stmtIds->fetchAll(PDO::FETCH_COLUMN);
+
+            // 3. Bulk insert links to payment slip in chunks to avoid parameter limits
+            if (!empty($new_ids)) {
+                $chunks = array_chunk($new_ids, 50); // 50 rows * 3 params = 150 params per batch
+                foreach ($chunks as $chunk) {
+                    $link_placeholders = implode(', ', array_fill(0, count($chunk), "(?, ?, ?)"));
+                    $sqlLinkBatch = "INSERT INTO paid_advertising (slip_link, add_link, paid) VALUES " . $link_placeholders;
+                    $stmtLinkBatch = $pdo->prepare($sqlLinkBatch);
+
+                    $linkParams = [];
+                    foreach ($chunk as $nid) {
+                        $linkParams[] = $new_payment_id;
+                        $linkParams[] = $nid;
+                        $linkParams[] = $is_paid;
+                    }
+                    $stmtLinkBatch->execute($linkParams);
+                }
             }
         }
 
