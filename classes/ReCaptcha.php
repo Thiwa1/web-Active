@@ -1,8 +1,6 @@
 <?php
 
 class ReCaptcha {
-    const SITE_KEY = '6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_';
-    const SECRET_KEY = '6Le5oFQsAAAAAJExhyk42DHC7mVaYg_0xPxRTkdj';
     const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
     /**
@@ -18,22 +16,15 @@ class ReCaptcha {
             return false;
         }
 
+        $secretKey = defined('RECAPTCHA_SECRET_KEY') ? RECAPTCHA_SECRET_KEY : (getenv('RECAPTCHA_SECRET_KEY') ?: '');
         $postData = http_build_query([
-            'secret' => self::SECRET_KEY,
+            'secret' => $secretKey,
             'response' => $token,
-            'remoteip' => $_SERVER['REMOTE_ADDR']
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
         ]);
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, self::VERIFY_URL);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        curl_close($ch);
+        $error = null;
+        $response = static::sendRequest($postData, $error);
 
         if ($error) {
             error_log("ReCaptcha CURL Error: " . $error);
@@ -60,7 +51,30 @@ class ReCaptcha {
         return false;
     }
 
+    /**
+     * Sends the POST request to the reCAPTCHA API.
+     * Separated to allow overriding in tests via Late Static Binding.
+     *
+     * @param string $postData
+     * @param string|null &$error
+     * @return string|false
+     */
+    protected static function sendRequest($postData, &$error) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, self::VERIFY_URL);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        return $response;
+    }
+
     public static function getSiteKey() {
-        return self::SITE_KEY;
+        return defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : (getenv('RECAPTCHA_SITE_KEY') ?: '');
     }
 }

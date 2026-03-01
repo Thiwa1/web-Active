@@ -17,6 +17,10 @@ if (!defined('SMTP_PORT')) define('SMTP_PORT', getenv('SMTP_PORT') ?: 465);
 if (!defined('SMTP_USER')) define('SMTP_USER', getenv('SMTP_USER') ?: '');
 if (!defined('SMTP_PASS')) define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
 
+// ReCaptcha Configuration
+if (!defined('RECAPTCHA_SITE_KEY')) define('RECAPTCHA_SITE_KEY', getenv('RECAPTCHA_SITE_KEY') ?: '');
+if (!defined('RECAPTCHA_SECRET_KEY')) define('RECAPTCHA_SECRET_KEY', getenv('RECAPTCHA_SECRET_KEY') ?: '');
+
 // 2. Data Source Name
 $dsn = "mysql:host=$host;dbname=$db_name;charset=$charset";
 
@@ -40,5 +44,9 @@ try {
     // In production, log the error to a file instead of echoing it
     error_log("Database connection failed: " . $e->getMessage());
     exit("A database error occurred. Please try again later.");
+    die("A secure connection error occurred. Please try again later.");
+    exit("Database connection failed. Please try again later.");
+    die("A database connection error occurred. Please try again later.");
+    die("Database connection failed. Please try again later.");
 }
 ?>
