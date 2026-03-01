@@ -26,6 +26,22 @@ class MockPDO {
     }
 }
 
+class MockGoogleAuth extends GoogleAuth {
+    public $lastRequestUrl = null;
+    public $lastRequestParams = null;
+    public $lastRequestPost = null;
+    public $lastRequestToken = null;
+    public $mockResponse = null;
+
+    protected function makeRequest($url, $params = [], $post = false, $token = null) {
+        $this->lastRequestUrl = $url;
+        $this->lastRequestParams = $params;
+        $this->lastRequestPost = $post;
+        $this->lastRequestToken = $token;
+        return $this->mockResponse;
+    }
+}
+
 class GoogleAuthTest {
     private $passed = 0;
     private $failed = 0;
@@ -44,6 +60,9 @@ class GoogleAuthTest {
         $this->testGetAuthUrlConfiguredWithState();
         $this->testGetAuthUrlConfiguredWithoutState();
         $this->testGetAuthUrlNotConfigured();
+
+        $this->testGetTokenSuccess();
+        $this->testGetTokenFailure();
 
         echo "\nTest Summary:\n";
         echo "Passed: {$this->passed}\n";
@@ -200,6 +219,72 @@ class GoogleAuthTest {
         $pdo = new MockPDO([]);
         $auth = new GoogleAuth($pdo);
         $this->assertEqual('#', $auth->getAuthUrl(), "getAuthUrl - Returns # when not configured");
+    }
+
+    private function testGetTokenSuccess() {
+        $pdo = new MockPDO([
+            'google_client_id' => 'id_123',
+            'google_client_secret' => 'secret_123',
+            'google_redirect_uri' => 'http://localhost/callback'
+        ]);
+
+        $auth = new MockGoogleAuth($pdo);
+        $auth->mockResponse = [
+            'access_token' => 'mock_access_token',
+            'expires_in' => 3599,
+            'scope' => 'email profile openid',
+            'token_type' => 'Bearer',
+            'id_token' => 'mock_id_token'
+        ];
+
+        $code = 'mock_auth_code';
+        $result = $auth->getToken($code);
+
+        // Verify return value
+        $this->assertEqual($auth->mockResponse, $result, "getToken - Returns expected response");
+
+        // Verify makeRequest arguments
+        $this->assertEqual('https://oauth2.googleapis.com/token', $auth->lastRequestUrl, "getToken - Requests correct URL");
+        $this->assertEqual(true, $auth->lastRequestPost, "getToken - Uses POST request");
+        $this->assertEqual(null, $auth->lastRequestToken, "getToken - Does not send Bearer token");
+
+        $expectedParams = [
+            'code' => 'mock_auth_code',
+            'client_id' => 'id_123',
+            'client_secret' => 'secret_123',
+            'redirect_uri' => 'http://localhost/callback',
+            'grant_type' => 'authorization_code'
+        ];
+        $this->assertEqual($expectedParams, $auth->lastRequestParams, "getToken - Sends correct parameters");
+    }
+
+    private function testGetTokenFailure() {
+        $pdo = new MockPDO([
+            'google_client_id' => 'id_123',
+            'google_client_secret' => 'secret_123',
+            'google_redirect_uri' => 'http://localhost/callback'
+        ]);
+
+        $auth = new MockGoogleAuth($pdo);
+        $auth->mockResponse = [
+            'error' => 'invalid_grant',
+            'error_description' => 'Bad Request'
+        ];
+
+        $code = 'invalid_code';
+        $result = $auth->getToken($code);
+
+        // Verify return value
+        $this->assertEqual($auth->mockResponse, $result, "getToken - Handles error response");
+
+        $expectedParams = [
+            'code' => 'invalid_code',
+            'client_id' => 'id_123',
+            'client_secret' => 'secret_123',
+            'redirect_uri' => 'http://localhost/callback',
+            'grant_type' => 'authorization_code'
+        ];
+        $this->assertEqual($expectedParams, $auth->lastRequestParams, "getToken - Sends correct parameters on failure");
     }
 }
 
