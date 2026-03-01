@@ -6,6 +6,10 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     header("Location: ../login.php"); exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 try {
     $sql = "SELECT ep.*, ut.user_email, ut.mobile_number, ut.user_active 
             FROM employer_profile ep 
@@ -125,6 +129,7 @@ try {
                             </td>
                             <td class="text-end pe-4">
                                 <form action="actions/process_recruiter.php" method="POST" class="d-inline-flex gap-2">
+                                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                     <input type="hidden" name="employer_id" value="<?= $emp['id'] ?>">
                                     <button type="submit" name="action" value="reject" class="btn btn-sm btn-reject rounded-pill px-3" onclick="return confirm('Confirm Rejection?')">
                                         Decline

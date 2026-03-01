@@ -48,7 +48,7 @@ class NotifySMS {
         return $this->send($phone, $message);
     }
 
-    private function executeCurl($to, $message) {
+    protected function executeCurl($to, $message) {
         $url = "https://app.notify.lk/api/v1/send";
         $data = [
             "user_id" => $this->userId,
