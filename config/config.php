@@ -43,6 +43,7 @@ try {
     // 5. Handle Connection Errors professionally
     // In production, log the error to a file instead of echoing it
     error_log("Database connection failed: " . $e->getMessage());
+    exit("A system error occurred. Please try again later.");
     exit("A database error occurred. Please try again later.");
     die("A secure connection error occurred. Please try again later.");
     exit("Database connection failed. Please try again later.");
