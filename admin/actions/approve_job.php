@@ -17,7 +17,6 @@ if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_to
     die("CSRF Token Validation Failed");
 }
 
-// Added POST handling to fix CSRF vulnerability in job approval
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 
 if ($id > 0) {
