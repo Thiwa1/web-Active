@@ -10,10 +10,10 @@
 
 function sendEmail($to, $subject, $message, $replyTo = null, &$errorDebug = null) {
     // Retrieve configuration or use defaults (for testing/fallback)
-    $smtpHost = defined('SMTP_HOST') ? SMTP_HOST : 'server386.web-hosting.com';
-    $smtpPort = defined('SMTP_PORT') ? SMTP_PORT : 465;
-    $smtpUser = defined('SMTP_USER') ? SMTP_USER : 'infor@tiptopvacancies.com';
-    $smtpPass = defined('SMTP_PASS') ? SMTP_PASS : 'Aa@@!21219125';
+    $smtpHost = defined('SMTP_HOST') ? SMTP_HOST : (getenv('SMTP_HOST') ?: '');
+    $smtpPort = defined('SMTP_PORT') ? SMTP_PORT : (getenv('SMTP_PORT') ?: 465);
+    $smtpUser = defined('SMTP_USER') ? SMTP_USER : (getenv('SMTP_USER') ?: '');
+    $smtpPass = defined('SMTP_PASS') ? SMTP_PASS : (getenv('SMTP_PASS') ?: '');
     $replyTo  = $replyTo ? $replyTo : $smtpUser;
 
     // --- PHPMailer Strategy (Preferred) ---
