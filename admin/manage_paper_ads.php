@@ -39,6 +39,13 @@ try {
 
 // Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
+
+// Validate the status filter against an allowlist to prevent unexpected input
+$allowedStatuses = ['All', 'Pending', 'Approved', 'Rejected'];
+if (!is_string($statusFilter) || !in_array($statusFilter, $allowedStatuses, true)) {
+    $statusFilter = 'All';
+}
+
 $sql = "SELECT p.*, u.full_name, u.user_email
         FROM paper_ads p
         LEFT JOIN user_table u ON p.user_id = u.id";

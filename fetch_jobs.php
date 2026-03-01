@@ -67,7 +67,7 @@ try {
             // Fix: Strip ../ to ensure path is relative to root (uploads/...)
             $cleanLogoPath = '';
             if (!empty($job['logo_path'])) {
-                $cleanLogoPath = str_replace(['../', './'], '', $job['logo_path']);
+                $cleanLogoPath = ltrim($job['logo_path'], './');
             }
 
             // Use __DIR__ to check file existence reliably from root
@@ -96,7 +96,7 @@ try {
             // Fix: Strip ../ for banner too
             $cleanImgPath = '';
             if (!empty($job['img_path'])) {
-                $cleanImgPath = str_replace(['../', './'], '', $job['img_path']);
+                $cleanImgPath = ltrim($job['img_path'], './');
             }
             $imgAbsPath = __DIR__ . '/' . $cleanImgPath;
 

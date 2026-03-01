@@ -10,6 +10,10 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     header("Location: ../login.php"); exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 try {
     $sql = "SELECT ep.*, ut.user_email, ut.mobile_number, ut.user_active 
             FROM employer_profile ep 
