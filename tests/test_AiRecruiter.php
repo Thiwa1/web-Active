@@ -26,6 +26,14 @@ class AiRecruiterTest {
         $this->testCaseInsensitivityAndHtmlTags();
         $this->testPartialWordMatch();
 
+        $this->testEstimateSalaryDefault();
+        $this->testEstimateSalaryCategoryMatch();
+        $this->testEstimateSalaryExperienceMultiplier();
+        $this->testEstimateSalaryEducationBonus();
+        $this->testEstimateSalarySeniorityBonus();
+        $this->testEstimateSalaryCombined();
+        $this->testEstimateSalaryRounding();
+
         echo "\nTest Summary:\n";
         echo "Passed: {$this->passed}\n";
         echo "Failed: {$this->failed}\n";
@@ -185,6 +193,69 @@ class AiRecruiterTest {
         // Exp score: 100
         // finalScore = 0 * 0.7 + 100 * 0.3 = 30
         $this->assertEqual(30, (int)$result['score'], "Partial Word Match (Negative) - Score");
+    }
+
+    private function testEstimateSalaryDefault() {
+        $result = $this->recruiter->estimateSalary("Just some text", 0, "Unknown");
+        $this->assertEqual(40000.0, (float)$result, "Estimate Salary - Default");
+    }
+
+    private function testEstimateSalaryCategoryMatch() {
+        $result = $this->recruiter->estimateSalary("Just some text", 0, "Software");
+        $this->assertEqual(75000.0, (float)$result, "Estimate Salary - Category Match");
+    }
+
+    private function testEstimateSalaryExperienceMultiplier() {
+        // 2.5 years: mult = 1 + 2.5 * 0.20 = 1.5 -> 40000 * 1.5 = 60000
+        $result1 = $this->recruiter->estimateSalary("text", 2.5, "Unknown");
+        $this->assertEqual(60000.0, (float)$result1, "Estimate Salary - Exp Mult <= 5");
+
+        // 6 years: mult = 1 + (5 * 0.20) + (1 * 0.10) = 2.1 -> 40000 * 2.1 = 84000
+        // 84000 / 5000 = 16.8 -> round is 17 -> 17 * 5000 = 85000
+        $result2 = $this->recruiter->estimateSalary("text", 6, "Unknown");
+        $this->assertEqual(85000.0, (float)$result2, "Estimate Salary - Exp Mult > 5");
+    }
+
+    private function testEstimateSalaryEducationBonus() {
+        // PhD (+0.5): 1.5 -> 60000
+        $result1 = $this->recruiter->estimateSalary("I have a PhD in computer science", 0, "Unknown");
+        $this->assertEqual(60000.0, (float)$result1, "Estimate Salary - PhD Bonus");
+
+        // Master (+0.3): 1.3 -> 40000 * 1.3 = 52000 -> 52000 / 5000 = 10.4 -> 10 * 5000 = 50000
+        $result2 = $this->recruiter->estimateSalary("I have a Master degree", 0, "Unknown");
+        $this->assertEqual(50000.0, (float)$result2, "Estimate Salary - Master Bonus");
+
+        // Degree (+0.15): 1.15 -> 40000 * 1.15 = 46000 -> 46000 / 5000 = 9.2 -> 9 * 5000 = 45000
+        $result3 = $this->recruiter->estimateSalary("I have a BSc in IT", 0, "Unknown");
+        $this->assertEqual(45000.0, (float)$result3, "Estimate Salary - Degree Bonus");
+    }
+
+    private function testEstimateSalarySeniorityBonus() {
+        // Senior (+0.2): 1.2 -> 40000 * 1.2 = 48000 -> 48000 / 5000 = 9.6 -> 10 * 5000 = 50000
+        $result = $this->recruiter->estimateSalary("Senior developer", 0, "Unknown");
+        $this->assertEqual(50000.0, (float)$result, "Estimate Salary - Seniority Bonus");
+    }
+
+    private function testEstimateSalaryCombined() {
+        // Category Software (75000)
+        // Experience 10 years (1 + 1 + 0.5 = 2.5)
+        // Education PhD (+0.5)
+        // Seniority Lead (+0.2)
+        // totalMultiplier = 2.5 + 0.5 + 0.2 = 3.2
+        // Base 75000. 75000 * 3.2 = 240000
+        $result = $this->recruiter->estimateSalary("PhD lead developer", 10, "Software");
+        $this->assertEqual(240000.0, (float)$result, "Estimate Salary - Combined");
+    }
+
+    private function testEstimateSalaryRounding() {
+        // Test a specific value that requires rounding
+        // base 40000, 1 year exp (1.2 multiplier) = 48000 -> 50000
+        $result1 = $this->recruiter->estimateSalary("Just a standard text", 1, "Unknown");
+        $this->assertEqual(50000.0, (float)$result1, "Estimate Salary - Rounding Up");
+
+        // base 40000, 0 exp, degree (1.15 multiplier) = 46000 -> 45000
+        $result2 = $this->recruiter->estimateSalary("BSc degree", 0, "Unknown");
+        $this->assertEqual(45000.0, (float)$result2, "Estimate Salary - Rounding Down");
     }
 }
 
