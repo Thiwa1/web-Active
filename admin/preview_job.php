@@ -192,13 +192,9 @@ try {
                 </button>
             </form>
         <?php else: ?>
-            <form action="actions/unapprove_job.php" method="POST" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                <input type="hidden" name="id" value="<?= $job_id ?>">
-                <button type="submit" class="btn btn-secondary px-5 rounded-pill shadow">
-                    <i class="fas fa-pause-circle me-2"></i>Take Offline
-                </button>
-            </form>
+             <button class="btn btn-secondary px-5 rounded-pill shadow" onclick="window.location.href='actions/unapprove_job.php?id=<?= $job_id ?>'">
+                <i class="fas fa-pause-circle me-2"></i>Take Offline
+            </button>
         <?php endif; ?>
     </div>
 </div>
@@ -206,24 +202,7 @@ try {
 <script>
 function confirmDelete(id) {
     if(confirm('SECURITY WARNING: Are you sure you want to permanently delete this job post? This action is recorded in the admin log.')) {
-        let form = document.createElement('form');
-        form.method = 'POST';
-        form.action = 'actions/delete_job.php';
-
-        let idInput = document.createElement('input');
-        idInput.type = 'hidden';
-        idInput.name = 'id';
-        idInput.value = id;
-
-        let csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrf_token';
-        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
-
-        form.appendChild(idInput);
-        form.appendChild(csrfInput);
-        document.body.appendChild(form);
-        form.submit();
+        window.location.href = 'actions/delete_job.php?id=' + id;
     }
 }
 </script>
