@@ -9,28 +9,16 @@ include 'layout/header.php';
 $stmt = $pdo->query("SELECT * FROM system_bank_accounts LIMIT 1");
 $bank = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fetch Newspapers and Rates (Lazy Load Schema if Missing)
+// Fetch Newspapers and Rates
 $papers = [];
 $rates = [];
+$schemaError = false;
 
 try {
     $papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    if ($e->getCode() == '42S02') { // Table not found
-        // Attempt to auto-create schema
-        if (file_exists('setup_newspaper_tables.php')) {
-            ob_start();
-            include 'setup_newspaper_tables.php';
-            ob_end_clean();
-            // Retry
-            try {
-                $papers = $pdo->query("SELECT * FROM newspapers ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
-            } catch (Exception $ex) {
-                echo "<div class='alert alert-danger'>System Error: Database setup failed. Please run setup_newspaper_tables.php manually.</div>";
-            }
-        } else {
-            echo "<div class='alert alert-danger'>System Configuration Error: Missing table 'newspapers'.</div>";
-        }
+    if ($e->getCode() == '42S02' || $e->getCode() == '42S22') { // Table or column not found
+        $schemaError = true;
     } else {
         error_log($e->getMessage());
     }
@@ -96,6 +84,12 @@ $nextFriday = date('Y-m-d', strtotime('next Friday'));
                 </div>
 
                 <div class="card-body p-4 p-md-5">
+
+                    <?php if($schemaError): ?>
+                        <div class="alert alert-danger rounded-3 mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i> <strong>System Error:</strong> Database setup required (missing tables or columns). Please contact the administrator.
+                        </div>
+                    <?php endif; ?>
 
                     <?php if(isset($_GET['success'])): ?>
                         <div class="alert alert-success rounded-3 mb-4">

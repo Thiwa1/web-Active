@@ -25,20 +25,9 @@ if (isset($_POST['update_status'])) {
     exit();
 }
 
-// Ensure schema is valid (Explicit check for closing_date and ad_columns)
-try {
-    $checkCol = $pdo->query("SHOW COLUMNS FROM paper_ads LIKE 'ad_columns'")->fetch();
-    if (!$checkCol && file_exists('../setup_newspaper_tables.php')) {
-        ob_start();
-        include '../setup_newspaper_tables.php';
-        ob_end_clean();
-    }
-} catch (Exception $e) {
-    // Ignore, let the main query handle fatal schema errors
-}
-
 // Fetch Ads with Error Handling for Missing Schema
 $statusFilter = $_GET['status'] ?? 'All';
+$schemaError = false;
 $sql = "SELECT p.*, u.full_name, u.user_email
         FROM paper_ads p
         LEFT JOIN user_table u ON p.user_id = u.id";
@@ -57,22 +46,8 @@ try {
 } catch (PDOException $e) {
     // Check for missing table (1146) or missing column (1054)
     if ($e->getCode() == '42S02' || $e->getCode() == '42S22') {
-        // Attempt Schema Fix
-        if (file_exists('../setup_newspaper_tables.php')) {
-            ob_start();
-            include '../setup_newspaper_tables.php'; // Adjusted path to root
-            ob_end_clean();
-            // Retry Query
-            try {
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($params);
-                $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (Exception $ex) {
-                die("System Error: Database schema mismatch. Please run setup scripts. " . $ex->getMessage());
-            }
-        } else {
-            die("System Error: Missing setup script.");
-        }
+        $ads = [];
+        $schemaError = true;
     } else {
         die("Database Error: " . $e->getMessage());
     }
@@ -129,6 +104,13 @@ try {
                 <a href="?status=Approved" class="btn btn-outline-success <?= $statusFilter == 'Approved' ? 'active' : '' ?>">Approved</a>
             </div>
         </div>
+
+        <?php if ($schemaError): ?>
+            <div class="alert alert-danger shadow-sm">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Database Error:</strong> The system detected a missing table or column (schema mismatch). Please run the setup script (<code>setup_newspaper_tables.php</code>) or contact an administrator to resolve this issue.
+            </div>
+        <?php endif; ?>
 
         <div class="card shadow-sm border-0">
             <div class="card-body p-0">
