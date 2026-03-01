@@ -1,6 +1,7 @@
 <?php
 require_once 'config/config.php';
 require_once 'classes/GoogleAuth.php';
+require_once 'classes/ReCaptcha.php';
 session_start();
 
 $google = new GoogleAuth($pdo);
@@ -29,7 +30,7 @@ $extraCss = '<style>
     .grecaptcha-badge { visibility: hidden; }
 </style>';
 ?>
-<script src="https://www.google.com/recaptcha/api.js?render=6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>"></script>
 <?php include 'layout/header.php'; ?>
 
 <div class="container py-5">
@@ -134,7 +135,7 @@ $extraCss = '<style>
         // But we need to handle the reCAPTCHA token injection manually here
         
         grecaptcha.ready(function() {
-            grecaptcha.execute('6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_', {action: 'login'}).then(function(token) {
+            grecaptcha.execute('<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>', {action: 'login'}).then(function(token) {
                 document.getElementById('recaptcha_token').value = token;
                 // Native submit to bypass this listener again
                 HTMLFormElement.prototype.submit.call(document.getElementById('loginForm'));

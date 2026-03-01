@@ -1,9 +1,15 @@
 <?php
 
 class ReCaptcha {
-    const SITE_KEY = '6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_';
-    const SECRET_KEY = '6Le5oFQsAAAAAJExhyk42DHC7mVaYg_0xPxRTkdj';
     const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
+
+    public static function getSiteKey() {
+        return getenv('RECAPTCHA_SITE_KEY') ?: '';
+    }
+
+    private static function getSecretKey() {
+        return getenv('RECAPTCHA_SECRET_KEY') ?: '';
+    }
 
     /**
      * Verifies the reCAPTCHA token.
@@ -19,7 +25,7 @@ class ReCaptcha {
         }
 
         $postData = http_build_query([
-            'secret' => self::SECRET_KEY,
+            'secret' => self::getSecretKey(),
             'response' => $token,
             'remoteip' => $_SERVER['REMOTE_ADDR']
         ]);
@@ -60,7 +66,4 @@ class ReCaptcha {
         return false;
     }
 
-    public static function getSiteKey() {
-        return self::SITE_KEY;
-    }
 }

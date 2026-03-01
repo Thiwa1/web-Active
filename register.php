@@ -1,6 +1,7 @@
 <?php
 require_once 'config/config.php';
 require_once 'classes/GoogleAuth.php';
+require_once 'classes/ReCaptcha.php';
 session_start();
 
 if (empty($_SESSION['csrf_token'])) {
@@ -30,7 +31,7 @@ $extraCss = '<style>
     .grecaptcha-badge { visibility: hidden; } /* Optional: hide floating badge if you include branding elsewhere */
 </style>';
 ?>
-<script src="https://www.google.com/recaptcha/api.js?render=6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>"></script>
 <?php include 'layout/header.php'; ?>
 
 <div class="container py-5">
@@ -152,7 +153,7 @@ $extraCss = '<style>
 document.getElementById('regForm').addEventListener('submit', function(e) {
     e.preventDefault();
     grecaptcha.ready(function() {
-        grecaptcha.execute('6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_', {action: 'register'}).then(function(token) {
+        grecaptcha.execute('<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>', {action: 'register'}).then(function(token) {
             document.getElementById('recaptcha_token').value = token;
             document.getElementById('regForm').submit();
         });
