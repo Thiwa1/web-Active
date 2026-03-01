@@ -115,12 +115,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // 4. Update SMS/API Settings (Bulk Update)
         elseif ($action == 'update_site_settings') {
-            if (isset($_POST['settings']) && is_array($_POST['settings'])) {
-                $sql = "UPDATE site_settings SET setting_value = ? WHERE id = ?";
-                $stmt = $pdo->prepare($sql);
+            if (isset($_POST['settings']) && is_array($_POST['settings']) && count($_POST['settings']) > 0) {
+                $ids = array_keys($_POST['settings']);
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+                $sql = "UPDATE site_settings SET setting_value = CASE id ";
+                $params = [];
+
                 foreach ($_POST['settings'] as $id => $val) {
-                    $stmt->execute([$val, $id]);
+                    $sql .= "WHEN ? THEN ? ";
+                    $params[] = $id;
+                    $params[] = $val;
                 }
+
+                $sql .= "END WHERE id IN ($placeholders)";
+
+                foreach ($ids as $id) {
+                    $params[] = $id;
+                }
+
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
             }
             header("Location: ../settings.php?status=updated#pane-sms");
             exit();
