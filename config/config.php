@@ -11,6 +11,12 @@ $db_user = getenv('DB_USER') ?: 'root';      // Default to root for local dev
 $db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''; // Support empty password
 $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
+// SMTP Configuration
+if (!defined('SMTP_HOST')) define('SMTP_HOST', getenv('SMTP_HOST') ?: '');
+if (!defined('SMTP_PORT')) define('SMTP_PORT', getenv('SMTP_PORT') ?: 465);
+if (!defined('SMTP_USER')) define('SMTP_USER', getenv('SMTP_USER') ?: '');
+if (!defined('SMTP_PASS')) define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
+
 // 2. Data Source Name
 $dsn = "mysql:host=$host;dbname=$db_name;charset=$charset";
 
