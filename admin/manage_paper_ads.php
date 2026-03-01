@@ -19,8 +19,14 @@ $activeTab = 'paper_ads';
 if (isset($_POST['update_status'])) {
     $id = (int)$_POST['ad_id'];
     $status = $_POST['status'];
-    $stmt = $pdo->prepare("UPDATE paper_ads SET status = ? WHERE id = ?");
-    $stmt->execute([$status, $id]);
+
+    // Strict allowlist validation for status updates
+    $allowedUpdateStatuses = ['Pending', 'Approved', 'Rejected'];
+    if (in_array($status, $allowedUpdateStatuses, true)) {
+        $stmt = $pdo->prepare("UPDATE paper_ads SET status = ? WHERE id = ?");
+        $stmt->execute([$status, $id]);
+    }
+
     header("Location: manage_paper_ads.php?msg=Status Updated");
     exit();
 }
