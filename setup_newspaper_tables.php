@@ -127,27 +127,43 @@ try {
         ]
     ];
 
+    // Insert all newspapers using INSERT IGNORE
+    $papers = array_keys($data);
+    $placeholders = implode(',', array_fill(0, count($papers), '(?)'));
+    $pdo->prepare("INSERT IGNORE INTO newspapers (name) VALUES $placeholders")->execute($papers);
+
+    // Fetch their IDs
+    $stmt = $pdo->query("SELECT id, name FROM newspapers");
+    $paperIds = [];
+    while ($row = $stmt->fetch()) {
+        $paperIds[$row['name']] = $row['id'];
+    }
+
+    // Fetch existing rates to avoid inserting duplicates
+    $existingRates = [];
+    $stmt = $pdo->query("SELECT newspaper_id, description FROM newspaper_rates");
+    while ($row = $stmt->fetch()) {
+        $existingRates[$row['newspaper_id'] . '-' . $row['description']] = true;
+    }
+
+    // Build batch insert for rates
+    $rateValues = [];
+    $rateParams = [];
     foreach ($data as $paper => $rates) {
-        // Insert Newspaper
-        $stmt = $pdo->prepare("SELECT id FROM newspapers WHERE name = ?");
-        $stmt->execute([$paper]);
-        $id = $stmt->fetchColumn();
-
-        if (!$id) {
-            $pdo->prepare("INSERT INTO newspapers (name) VALUES (?)")->execute([$paper]);
-            $id = $pdo->lastInsertId();
-        }
-
-        // Insert Rates
-        $stmtRate = $pdo->prepare("INSERT INTO newspaper_rates (newspaper_id, description, rate) VALUES (?, ?, ?)");
+        if (!isset($paperIds[$paper])) continue;
+        $id = $paperIds[$paper];
         foreach ($rates as $r) {
-            // Avoid duplicates
-            $check = $pdo->prepare("SELECT id FROM newspaper_rates WHERE newspaper_id = ? AND description = ?");
-            $check->execute([$id, $r[0]]);
-            if (!$check->fetch()) {
-                $stmtRate->execute([$id, $r[0], $r[1]]);
+            if (!isset($existingRates[$id . '-' . $r[0]])) {
+                $rateValues[] = '(?, ?, ?)';
+                array_push($rateParams, $id, $r[0], $r[1]);
             }
         }
+    }
+
+    // Insert rates in batch
+    if (!empty($rateValues)) {
+        $ratePlaceholders = implode(', ', $rateValues);
+        $pdo->prepare("INSERT INTO newspaper_rates (newspaper_id, description, rate) VALUES $ratePlaceholders")->execute($rateParams);
     }
     echo "Seed data inserted.\n";
 
