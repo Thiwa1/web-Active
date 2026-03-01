@@ -43,13 +43,17 @@ $sql = "SELECT p.*, u.full_name, u.user_email
         FROM paper_ads p
         LEFT JOIN user_table u ON p.user_id = u.id";
 
+$params = [];
 if ($statusFilter !== 'All') {
-    $sql .= " WHERE p.status = '$statusFilter'";
+    $sql .= " WHERE p.status = ?";
+    $params[] = $statusFilter;
 }
 $sql .= " ORDER BY p.created_at DESC";
 
 try {
-    $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Check for missing table (1146) or missing column (1054)
     if ($e->getCode() == '42S02' || $e->getCode() == '42S22') {
@@ -60,7 +64,9 @@ try {
             ob_end_clean();
             // Retry Query
             try {
-                $ads = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (Exception $ex) {
                 die("System Error: Database schema mismatch. Please run setup scripts. " . $ex->getMessage());
             }
