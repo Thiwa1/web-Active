@@ -206,9 +206,13 @@ try {
                                             <a href="#" onclick="loadContent('view_applications?job_id=<?= $job['id'] ?>'); return false;" class="btn btn-sm btn-outline-primary rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" title="View Applicants">
                                                 <i class="fas fa-users"></i>
                                             </a>
-                                            <a href="actions/delete_job.php?id=<?= $job['id'] ?>" class="btn btn-sm btn-outline-danger rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" onclick="return confirm('Archive this vacancy?');" title="Delete">
-                                                <i class="fas fa-trash-can"></i>
-                                            </a>
+                                            <form method="POST" action="actions/delete_job.php" style="display:inline;" onsubmit="return confirm('Archive this vacancy?');">
+                                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                <input type="hidden" name="id" value="<?= $job['id'] ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 d-flex align-items-center justify-content-center" style="width:38px;height:38px;" title="Delete">
+                                                    <i class="fas fa-trash-can"></i>
+                                                </button>
+                                            </form>
                                         <?php else: ?>
                                             <span class="text-muted small">Archived</span>
                                         <?php endif; ?>
