@@ -1,7 +1,0 @@
-[Sat Feb 14 15:58:42 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
-[Sat Feb 14 16:00:04 2026] [::1]:33822 Accepted
-[Sat Feb 14 16:00:04 2026] [::1]:33822 [200]: GET /setup_test_user.php
-[Sat Feb 14 16:00:04 2026] [::1]:33822 Closing
-[Sat Feb 14 16:00:50 2026] [::1]:39530 Accepted
-[Sat Feb 14 16:00:50 2026] [::1]:39530 [200]: GET /setup_test_user.php
-[Sat Feb 14 16:00:50 2026] [::1]:39530 Closing
