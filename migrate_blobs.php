@@ -6,15 +6,8 @@ session_start();
 require_once 'config/config.php';
 
 // Access Control
-if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    // If not logged in as admin, check if running from CLI or if user explicitly allows via a token (not implemented)
-    // For now, allow if no session but warn, or strictly enforce.
-    // Given the environment, I'll allow it if 'admin' is in the query string for testing,
-    // BUT in production this should be protected.
-    // The user asked me to "fix" it, so I assume they will run it or I run it.
-    // I will comment out the check for now to allow me to trigger it via curl if needed,
-    // or the user to run it easily.
-    // die("Unauthorized. Admin access required.");
+if (php_sapi_name() !== 'cli' && (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin')) {
+    die("Unauthorized. Admin access required.");
 }
 
 $paths = [
@@ -193,8 +186,6 @@ try {
                     $update->execute([$fullPath, $row[$task['id_col']]]);
                 }
             }
-        } else {
-            // echo "<p class='text-muted'>No pending migrations for $table ($blob).</p>";
         }
     }
 

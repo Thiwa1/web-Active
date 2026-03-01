@@ -29,8 +29,11 @@ $extraCss = '<style>
     .password-toggle:hover { color: var(--primary); }
     .grecaptcha-badge { visibility: hidden; }
 </style>';
+
+require_once 'classes/ReCaptcha.php';
+$siteKey = ReCaptcha::getSiteKey();
 ?>
-<script src="https://www.google.com/recaptcha/api.js?render=<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php include 'layout/header.php'; ?>
 
 <div class="container py-5">
@@ -135,7 +138,7 @@ $extraCss = '<style>
         // But we need to handle the reCAPTCHA token injection manually here
         
         grecaptcha.ready(function() {
-            grecaptcha.execute('<?= htmlspecialchars(ReCaptcha::getSiteKey()); ?>', {action: 'login'}).then(function(token) {
+            grecaptcha.execute('<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>', {action: 'login'}).then(function(token) {
                 document.getElementById('recaptcha_token').value = token;
                 // Native submit to bypass this listener again
                 HTMLFormElement.prototype.submit.call(document.getElementById('loginForm'));

@@ -13,10 +13,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Employee') {
 $user_id = $_SESSION['user_id'];
 
 try {
-    /** * THE FIX: 
-     * We join advertising_table (a) with employer_profile (ep) 
-     * to fetch the actual 'employer_name' field.
-     */
     $sql = "SELECT 
                 ja.applied_date, 
                 ja.application_status, 
