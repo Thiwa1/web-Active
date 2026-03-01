@@ -4,7 +4,8 @@ require_once '../../config/config.php';
 
 // 1. Security Check: Only allow Admins to proceed
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../manage_jobs.php");
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -85,7 +86,7 @@ if (isset($_POST['id'])) {
         die("Error archiving/deleting job: " . $e->getMessage());
     }
 } else {
-    // Unauthorized access or missing ID
+    // Missing ID
     header("Location: ../manage_jobs.php");
     exit();
 }
