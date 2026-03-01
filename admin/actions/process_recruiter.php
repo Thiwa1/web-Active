@@ -3,6 +3,11 @@ session_start();
 require_once '../../config/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['user_type'] === 'Admin') {
+    if (empty($_SESSION['csrf_token']) || empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF Token Validation Failed");
+    }
+
     $employer_id = $_POST['employer_id'];
     $action = $_POST['action'];
     $admin_name = $_SESSION['full_name'] ?? 'System Admin';
