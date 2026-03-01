@@ -3,6 +3,14 @@
 class ReCaptcha {
     const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
+    public static function getSiteKey() {
+        return getenv('RECAPTCHA_SITE_KEY') ?: '';
+    }
+
+    private static function getSecretKey() {
+        return getenv('RECAPTCHA_SECRET_KEY') ?: '';
+    }
+
     /**
      * Verifies the reCAPTCHA token.
      *

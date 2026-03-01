@@ -1,6 +1,7 @@
 <?php
 require_once 'config/config.php';
 require_once 'classes/GoogleAuth.php';
+require_once 'classes/ReCaptcha.php';
 session_start();
 
 $google = new GoogleAuth($pdo);
