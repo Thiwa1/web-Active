@@ -75,6 +75,10 @@ function sendEmail($to, $subject, $message, $replyTo = null, &$errorDebug = null
     }
 
     // --- Legacy fsockopen Strategy (Fallback) ---
+    return sendEmailWithSocket($to, $subject, $message, $replyTo, $errorDebug, $smtpHost, $smtpPort, $smtpUser, $smtpPass);
+}
+
+function sendEmailWithSocket($to, $subject, $message, $replyTo, &$errorDebug, $smtpHost, $smtpPort, $smtpUser, $smtpPass) {
     $crlf = "\r\n";
 
     try {

@@ -11,7 +11,7 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 -- Schema tiptromr_vacancies
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `tiptromr_vacancies` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
+CREATE SCHEMA IF NOT EXISTS `tiptromr_vacancies` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci ;
 USE `tiptromr_vacancies` ;
 
 -- -----------------------------------------------------
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`employer_profile` (
   UNIQUE INDEX `employee_whatsapp_no_UNIQUE` (`employer_whatsapp_no` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`job_category_table` (
   UNIQUE INDEX `Description_UNIQUE` (`Description` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`district_table` (
   UNIQUE INDEX `District_name_UNIQUE` (`District_name` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`city_table` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -103,7 +103,6 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`advertising_table` (
   `Industry` VARCHAR(255) NULL DEFAULT NULL,
   `Job_category` VARCHAR(255) NULL DEFAULT NULL,
   `Job_role` VARCHAR(255) NULL DEFAULT NULL,
-  `job_type` VARCHAR(50) NULL DEFAULT 'Full Time',
   `job_type` VARCHAR(50) NULL DEFAULT 'Full Time',
   `Img` MEDIUMBLOB NULL DEFAULT NULL,
   `City` VARCHAR(45) NULL DEFAULT NULL,
@@ -146,7 +145,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`advertising_table` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -182,7 +181,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`advertising_table_deleted` (
 ENGINE = InnoDB
 AUTO_INCREMENT = 2
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -198,7 +197,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`user_type_table` (
 ENGINE = InnoDB
 AUTO_INCREMENT = 4
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -235,7 +234,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`user_table` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -256,7 +255,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`candidate_profile` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -275,7 +274,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`employee_alerted_setting` (
   INDEX `index_link_to_employer_profile` (`link_to_employee_profile` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -291,7 +290,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`employee_document` (
   INDEX `link_to_employer_profile_idx` (`link_to_employee_profile` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -317,7 +316,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`employee_profile_seeker` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -345,7 +344,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`guest_job_applications` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -373,7 +372,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`job_applications` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -388,7 +387,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`job_views_log` (
   INDEX `viewed_at` (`viewed_at` ASC) VISIBLE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -414,7 +413,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`payment_table` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -440,7 +439,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`paid_advertising` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -462,7 +461,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`recruiter_profile` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -478,7 +477,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`site_settings` (
 ENGINE = InnoDB
 AUTO_INCREMENT = 4
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -499,7 +498,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`sms_logs` (
     ON DELETE CASCADE)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -515,7 +514,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`system_bank_accounts` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
@@ -542,7 +541,7 @@ CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`talent_offers` (
 ENGINE = InnoDB
 AUTO_INCREMENT = 2
 DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
+COLLATE = utf8mb4_unicode_ci;
 
 
 -- -----------------------------------------------------
