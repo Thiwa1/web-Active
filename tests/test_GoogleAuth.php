@@ -39,6 +39,7 @@ class GoogleAuthTest {
         $this->testIsConfiguredMissingRedirectUri();
         $this->testIsConfiguredEmptySettings();
         $this->testIsConfiguredDbException();
+        $this->testIsConfiguredViaReflection();
 
         $this->testGetAuthUrlConfigured();
         $this->testGetAuthUrlNotConfigured();
@@ -119,6 +120,31 @@ class GoogleAuthTest {
         $pdo->exception = true;
         $auth = new GoogleAuth($pdo);
         $this->assertEqual(false, $auth->isConfigured(), "isConfigured - DB Exception");
+    }
+
+    private function testIsConfiguredViaReflection() {
+        $pdo = new MockPDO([]);
+        $auth = new GoogleAuth($pdo);
+
+        // Initial state should be unconfigured
+        $this->assertEqual(false, $auth->isConfigured(), "isConfigured - Initial state unconfigured");
+
+        // Set properties via reflection to test state directly
+        $reflector = new ReflectionClass(GoogleAuth::class);
+
+        $clientIdProp = $reflector->getProperty('clientId');
+        $clientIdProp->setAccessible(true);
+        $clientIdProp->setValue($auth, 'ref_client_id');
+
+        $clientSecretProp = $reflector->getProperty('clientSecret');
+        $clientSecretProp->setAccessible(true);
+        $clientSecretProp->setValue($auth, 'ref_client_secret');
+
+        $redirectUriProp = $reflector->getProperty('redirectUri');
+        $redirectUriProp->setAccessible(true);
+        $redirectUriProp->setValue($auth, 'http://localhost/ref');
+
+        $this->assertEqual(true, $auth->isConfigured(), "isConfigured - Configured via Reflection");
     }
 
     private function testGetAuthUrlConfigured() {
