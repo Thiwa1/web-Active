@@ -40,7 +40,7 @@ try {
                                  GROUP BY e.id ORDER BY total_spent DESC LIMIT 5")->fetchAll();
 
 } catch (PDOException $e) {
-    die("Data Integrity Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Data Integrity Error:  A database error occurred.")); exit();
 }
 ?>
 

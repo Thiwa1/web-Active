@@ -58,10 +58,24 @@ try {
 } catch (PDOException $e) {
     // Check for missing table (1146) or missing column (1054)
     if ($e->getCode() == '42S02' || $e->getCode() == '42S22') {
-        $ads = [];
-        $schemaError = true;
+        // Attempt Schema Fix
+        if (file_exists('../setup_newspaper_tables.php')) {
+            ob_start();
+            include '../setup_newspaper_tables.php'; // Adjusted path to root
+            ob_end_clean();
+            // Retry Query
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $ex) {
+                header("Location: dashboard.php?error=" . urlencode("System Error: Database schema mismatch. Please run setup scripts.  A database error occurred.")); exit();
+            }
+        } else {
+            header("Location: dashboard.php?error=" . urlencode("System Error: Missing setup script.")); exit();
+        }
     } else {
-        die("Database Error: " . $e->getMessage());
+        header("Location: dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }
 

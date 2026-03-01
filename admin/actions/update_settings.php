@@ -5,12 +5,12 @@ require_once '../../config/upload_helper.php';
 
 // Security check
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Unauthorized Access");
+    header("Location: ../../login.php?error=" . urlencode("Unauthorized Access")); exit();
 }
 
 // Check for empty POST (File upload limit exceeded)
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && empty($_POST)) {
-    die("Error: No data received. The file you uploaded might be larger than the server allows (post_max_size/upload_max_filesize).");
+    header("Location: ../dashboard.php?error=" . urlencode("Error: No data received. The file you uploaded might be larger than the server allows (post_max_size/upload_max_filesize).")); exit();
 }
 
 /** * HANDLE POST REQUESTS (Add / Update)
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!empty($_FILES['logo']['tmp_name'])) {
                 try {
                     $logo_path = uploadImage($_FILES['logo'], '../../uploads/system/');
-                } catch (Exception $e) { die("Image Error: " . $e->getMessage()); }
+                } catch (Exception $e) { header("Location: ../dashboard.php?error=" . urlencode("Image Error:  A database error occurred.")); exit(); }
             }
 
             // Retry logic for schema updates
@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
     } catch (Exception $e) {
-        die("System Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("System Error:  A database error occurred.")); exit();
     }
 }
 
@@ -199,7 +199,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete') {
                (($table == 'district_table' || $table == 'city_table') ? '#pane-geo' : '#pane-taxonomy');
         header("Location: ../settings.php?status=deleted" . $hash);
     } catch (Exception $e) {
-        die("Deletion Error: Check if this item is being used by active jobs.");
+        header("Location: ../dashboard.php?error=" . urlencode("Deletion Error: Check if this item is being used by active jobs.")); exit();
     }
 }
 
