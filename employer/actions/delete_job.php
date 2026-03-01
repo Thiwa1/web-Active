@@ -25,19 +25,23 @@ if ($job_id > 0) {
             // Move to Archive (Soft Delete)
             $pdo->beginTransaction();
             
-            // 1. Copy to Deleted Table
-            $sqlCopy = "INSERT INTO advertising_table_deleted SELECT * FROM advertising_table WHERE id = ?";
-            // Note: Schema might mismatch if deleted table has extra cols (deleted_by, deleted_date).
-            // Better to select specific columns or rely on exact schema match.
-            // Assuming schema provided earlier, let's try explicit insert or just INSERT SELECT * if identical.
-            // Based on user schema: advertising_table_deleted has `deleted_by`, `deleted_date`.
-            // So SELECT * will fail column count match.
-            
-            // Explicit Insert
-            $cols = "link_to_employer_profile, Opening_date, Closing_date, Industry, Job_category, Job_role, Img, City, job_description, District, Apply_by_email, Apply_by_system, apply_WhatsApp, Apply_by_email_address, apply_WhatsApp_No, Approved, Rejection_comment, rejection_reason";
-            
-            $sqlArchive = "INSERT INTO advertising_table_deleted ($cols, deleted_by, deleted_date) 
-                           SELECT $cols, ?, NOW() 
+            // 1. Dynamic Column Discovery
+            $sourceStmt = $pdo->query("SHOW COLUMNS FROM advertising_table");
+            $sourceCols = $sourceStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $targetStmt = $pdo->query("SHOW COLUMNS FROM advertising_table_deleted");
+            $targetCols = $targetStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // Find common columns, exclude 'id', 'deleted_by', 'deleted_date'
+            $commonCols = array_intersect($sourceCols, $targetCols);
+            $excludeCols = ['id', 'deleted_by', 'deleted_date'];
+            $insertCols = array_diff($commonCols, $excludeCols);
+
+            $colsStr = implode(", ", $insertCols);
+
+            // Generate explicit insert query based on common columns
+            $sqlArchive = "INSERT INTO advertising_table_deleted ($colsStr, deleted_by, deleted_date)
+                           SELECT $colsStr, ?, NOW()
                            FROM advertising_table WHERE id = ?";
                            
             $stmtArchive = $pdo->prepare($sqlArchive);
