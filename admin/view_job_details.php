@@ -6,6 +6,11 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     header("Location: ../login.php"); exit();
 }
 
+// CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $job_id = $_GET['id'] ?? null;
 if (!$job_id) { header("Location: manage_jobs.php"); exit(); }
 
@@ -183,7 +188,24 @@ try {
 <script>
 function confirmDelete(id) {
     if(confirm('CRITICAL: Permanent deletion will remove all applicant data linked to this job. Continue?')) {
-        window.location.href = 'actions/delete_job.php?id=' + id;
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'actions/delete_job.php';
+
+        let idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'id';
+        idInput.value = id;
+
+        let csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
+
+        form.appendChild(idInput);
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
