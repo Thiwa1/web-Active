@@ -3,8 +3,13 @@ session_start();
 require_once '../../config/config.php';
 
 // 1. Security Check: Only allow Admins to proceed
-if (isset($_GET['id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'Admin') {
-    $job_id = $_GET['id'];
+if (isset($_POST['id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'Admin') {
+    // CSRF Validation
+    if (empty($_SESSION['csrf_token']) || empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Security Validation Failed.");
+    }
+
+    $job_id = $_POST['id'];
     // Capture the ID of the admin performing the deletion for the audit log
     $deleted_by = $_SESSION['user_id'] ?? 0; 
 
