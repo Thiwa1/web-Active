@@ -8,6 +8,10 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
     exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 try {
     // Audit Metrics
     $pendingTotal = $pdo->query("SELECT SUM(Totaled_received) FROM payment_table WHERE Approval = 0")->fetchColumn() ?: 0;
@@ -207,7 +211,7 @@ function submitAction(id, action, reason = '') {
     form.method = 'POST';
     form.action = 'actions/process_payment.php';
 
-    const fields = { payment_id: id, action: action, reason: reason };
+    const fields = { payment_id: id, action: action, reason: reason, csrf_token: '<?= $_SESSION['csrf_token'] ?>' };
     for (const key in fields) {
         const input = document.createElement('input');
         input.type = 'hidden';
