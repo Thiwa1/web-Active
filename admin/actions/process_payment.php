@@ -9,6 +9,11 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die("CSRF Token Validation Failed");
+    }
+
     $payment_id = $_POST['payment_id'];
     $action = $_POST['action']; 
     $reason = $_POST['reason'] ?? '';
