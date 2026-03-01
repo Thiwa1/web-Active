@@ -9,9 +9,14 @@ session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 0. reCAPTCHA Verification
+    // 0. CSRF & reCAPTCHA Verification
+    if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        header("Location: ../register.php?error=Security check failed (CSRF). Please try again.");
+        exit();
+    }
+
     if (!isset($_POST['recaptcha_token']) || !ReCaptcha::verify($_POST['recaptcha_token'], 'register')) {
-        header("Location: ../register.php?error=Security check failed. Please refresh and try again.");
+        header("Location: ../register.php?error=Security check failed (reCAPTCHA). Please refresh and try again.");
         exit();
     }
 
