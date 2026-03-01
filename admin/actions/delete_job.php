@@ -68,7 +68,7 @@ if (isset($_GET['id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'
     } catch (PDOException $e) {
         // If anything goes wrong, cancel all changes
         $pdo->rollBack();
-        die("Error archiving/deleting job: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Error archiving/deleting job:  A database error occurred.")); exit();
     }
 } else {
     // Unauthorized access or missing ID

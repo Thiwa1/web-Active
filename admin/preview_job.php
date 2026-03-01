@@ -16,7 +16,7 @@ if (empty($_SESSION['csrf_token'])) {
 $job_id = $_GET['id'] ?? null;
 
 if (!$job_id) {
-    die("Invalid Job ID.");
+    header("Location: dashboard.php?error=" . urlencode("Invalid Job ID.")); exit();
 }
 
 try {
@@ -27,9 +27,9 @@ try {
     $stmt->execute([$job_id]);
     $job = $stmt->fetch();
 
-    if (!$job) { die("Job not found."); }
+    if (!$job) { header("Location: dashboard.php?error=" . urlencode("Job not found.")); exit(); }
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
 }
 ?>
 

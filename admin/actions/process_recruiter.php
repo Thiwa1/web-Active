@@ -22,6 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['user_type'] === 'Admin')
         header("Location: ../verify_recruiters.php?msg=" . urlencode($msg));
         exit();
     } catch (PDOException $e) {
-        die("Database Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }

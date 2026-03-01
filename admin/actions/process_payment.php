@@ -82,6 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         if ($pdo->inTransaction()) { $pdo->rollBack(); }
-        die("Database Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }

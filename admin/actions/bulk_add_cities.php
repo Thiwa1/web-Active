@@ -4,7 +4,7 @@ require_once '../../config/config.php';
 
 // Security Check
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

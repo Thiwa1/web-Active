@@ -4,17 +4,15 @@ require_once '../../config/config.php';
 
 // Security Check
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die("Method Not Allowed");
+    header("Location: ../dashboard.php?error=" . urlencode("Method Not Allowed")); exit();
 }
 
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
-    http_response_code(403);
-    die("CSRF Token Validation Failed");
+    header("Location: ../dashboard.php?error=" . urlencode("CSRF Token Validation Failed")); exit();
 }
 
 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -77,7 +75,7 @@ if ($id > 0) {
 
         header("Location: ../manage_jobs.php?msg=Job Approved. Alerts sent to $sentCount candidates.");
     } catch (PDOException $e) {
-        die("Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
     }
 } else {
     header("Location: ../manage_jobs.php?error=Invalid ID");

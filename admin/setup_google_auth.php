@@ -3,7 +3,7 @@ require_once '../config/config.php';
 session_start();
 
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 try {
@@ -31,6 +31,6 @@ try {
     echo "<a href='settings.php#pane-sms'>Configure Keys</a>";
 
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Error:  A database error occurred.")); exit();
 }
 ?>

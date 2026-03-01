@@ -18,7 +18,7 @@ try {
     $payments = $pdo->query($sql)->fetchAll();
 
 } catch (PDOException $e) {
-    die("Database Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
 }
 ?>
 
