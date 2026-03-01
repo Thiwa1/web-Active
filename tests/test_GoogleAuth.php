@@ -26,6 +26,22 @@ class MockPDO {
     }
 }
 
+class TestableGoogleAuth extends GoogleAuth {
+    public $lastRequestUrl;
+    public $lastRequestParams;
+    public $lastRequestPost;
+    public $lastRequestToken;
+    public $mockResponse;
+
+    protected function makeRequest($url, $params = [], $post = false, $token = null) {
+        $this->lastRequestUrl = $url;
+        $this->lastRequestParams = $params;
+        $this->lastRequestPost = $post;
+        $this->lastRequestToken = $token;
+        return $this->mockResponse;
+    }
+}
+
 class GoogleAuthTest {
     private $passed = 0;
     private $failed = 0;
@@ -44,6 +60,8 @@ class GoogleAuthTest {
         $this->testGetAuthUrlConfiguredWithState();
         $this->testGetAuthUrlConfiguredWithoutState();
         $this->testGetAuthUrlNotConfigured();
+
+        $this->testGetUserInfo();
 
         echo "\nTest Summary:\n";
         echo "Passed: {$this->passed}\n";
@@ -200,6 +218,27 @@ class GoogleAuthTest {
         $pdo = new MockPDO([]);
         $auth = new GoogleAuth($pdo);
         $this->assertEqual('#', $auth->getAuthUrl(), "getAuthUrl - Returns # when not configured");
+    }
+
+    private function testGetUserInfo() {
+        $pdo = new MockPDO([
+            'google_client_id' => 'id_123',
+            'google_client_secret' => 'secret_123',
+            'google_redirect_uri' => 'http://localhost/callback'
+        ]);
+
+        $auth = new TestableGoogleAuth($pdo);
+        $expectedResponse = ['id' => 'user_456', 'email' => 'test@example.com'];
+        $auth->mockResponse = $expectedResponse;
+
+        $accessToken = 'mock_access_token_789';
+        $result = $auth->getUserInfo($accessToken);
+
+        $this->assertEqual($expectedResponse, $result, "getUserInfo - Returns expected response");
+        $this->assertEqual('https://www.googleapis.com/oauth2/v3/userinfo', $auth->lastRequestUrl, "getUserInfo - Uses correct URL");
+        $this->assertEqual([], $auth->lastRequestParams, "getUserInfo - Uses empty parameters");
+        $this->assertEqual(false, $auth->lastRequestPost, "getUserInfo - Uses GET request method");
+        $this->assertEqual($accessToken, $auth->lastRequestToken, "getUserInfo - Passes correct access token");
     }
 }
 
