@@ -35,10 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtAds->execute([$payment_id]);
             $linkedAds = $stmtAds->fetchAll(PDO::FETCH_ASSOC);
 
-            foreach ($linkedAds as $job) {
-                // Activate Ad
-                $pdo->prepare("UPDATE advertising_table SET Approved = 1 WHERE id = ?")->execute([$job['id']]);
+            $jobIds = array_column($linkedAds, 'id');
+            if (!empty($jobIds)) {
+                $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
+                $pdo->prepare("UPDATE advertising_table SET Approved = 1 WHERE id IN ($placeholders)")->execute($jobIds);
+            }
 
+            foreach ($linkedAds as $job) {
                 // 4. FIXED SMS LOGIC: Get Mobile/WhatsApp from user_table
                 // We JOIN employer_profile_seeker -> user_table to get the actual contact numbers
                 $sqlSubscribers = "SELECT ut.id as user_id, ut.mobile_number, ut.WhatsApp_number 
