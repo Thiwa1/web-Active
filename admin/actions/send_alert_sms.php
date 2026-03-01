@@ -5,7 +5,7 @@ require_once '../../config/mail_helper.php';
 require_once '../../classes/NotifySMS.php';
 
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied");
+    header("Location: ../../login.php?error=" . urlencode("Access Denied")); exit();
 }
 
 $limit = isset($_POST['limit']) ? (int)$_POST['limit'] : 50;
@@ -43,30 +43,32 @@ try {
     $updateSql = "UPDATE employee_alerted_setting SET last_alert_sent = NOW(), Total_count = Total_count + 1 WHERE id = ?";
     $updateStmt = $pdo->prepare($updateSql);
 
+    // Fetch all active jobs to avoid N+1 queries in the loop
+    $jobsSql = "
+        SELECT id, Job_role, City, District, Job_category
+        FROM advertising_table
+        WHERE Approved = 1
+        AND Closing_date >= CURDATE()
+        ORDER BY id DESC
+    ";
+    $jobsStmt = $pdo->query($jobsSql);
+    $allJobs = $jobsStmt->fetchAll();
+
     foreach ($targets as $t) {
         // 2. Find a MATCHING Job for this user
         // Priority: Match City > District > Category
         // Must be Approved (1) and Active (Closing date future)
-        $matchSql = "
-            SELECT id, Job_role FROM advertising_table 
-            WHERE Approved = 1 
-            AND Closing_date >= CURDATE()
-            AND (
-                (City = ? AND Job_category = ?) OR 
-                (District = ? AND Job_category = ?) OR
-                (Job_category = ?)
-            )
-            ORDER BY id DESC LIMIT 1
-        ";
-        
-        $matchStmt = $pdo->prepare($matchSql);
-        $matchStmt->execute([
-            $t['city'], $t['job_category'],
-            $t['district'], $t['job_category'],
-            $t['job_category']
-        ]);
-        
-        $job = $matchStmt->fetch();
+        $job = null;
+        foreach ($allJobs as $j) {
+            if (
+                (strcasecmp($j['City'], $t['city']) === 0 && strcasecmp($j['Job_category'], $t['job_category']) === 0) ||
+                (strcasecmp($j['District'], $t['district']) === 0 && strcasecmp($j['Job_category'], $t['job_category']) === 0) ||
+                (strcasecmp($j['Job_category'], $t['job_category']) === 0)
+            ) {
+                $job = $j;
+                break; // Simulates LIMIT 1 since array is pre-sorted by id DESC
+            }
+        }
 
         if ($job) {
             // 3. Send SMS using NotifySMS Class
@@ -106,7 +108,7 @@ try {
 } catch (PDOException $e) {
     // If column missing, give hint
     if (strpos($e->getMessage(), 'last_alert_sent') !== false) {
-        die("Database Update Required: Please run the SQL command to add 'last_alert_sent' column.");
+        header("Location: ../dashboard.php?error=" . urlencode("Database Update Required: Please run the SQL command to add 'last_alert_sent' column.")); exit();
     }
-    die("System Error: " . $e->getMessage());
+    header("Location: ../dashboard.php?error=" . urlencode("System Error:  A database error occurred.")); exit();
 }

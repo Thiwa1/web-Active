@@ -9,7 +9,7 @@ require_once '../config/config.php';
 
 // Security Check: Ensure only Admin can run this
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Access Denied. Please log in as Admin.");
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>Error:</strong> " . htmlspecialchars("Access Denied. Please log in as Admin.") . " <a href='../login.php'>Login here</a></div>"; exit();
 }
 
 echo "<h2>Database Schema Update Tool</h2>";

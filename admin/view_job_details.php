@@ -22,7 +22,7 @@ try {
     $stmt->execute([$job_id]);
     $job = $stmt->fetch();
 
-    if (!$job) { die("Record Expired or Not Found."); }
+    if (!$job) { header("Location: dashboard.php?error=" . urlencode("Record Expired or Not Found.")); exit(); }
 
     // Logic: Calculate Days Remaining
     $closing_date = new DateTime($job['Closing_date']);
@@ -30,7 +30,7 @@ try {
     $days_left = $today->diff($closing_date)->format("%r%a");
 
 } catch (PDOException $e) {
-    die("Engine Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Engine Error:  A database error occurred.")); exit();
 }
 ?>
 

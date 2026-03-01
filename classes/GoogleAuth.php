@@ -53,7 +53,7 @@ class GoogleAuth {
         return $this->makeRequest($url, [], false, $accessToken);
     }
 
-    private function makeRequest($url, $params = [], $post = false, $token = null) {
+    protected function makeRequest($url, $params = [], $post = false, $token = null) {
         // Try CURL first
         if (function_exists('curl_init')) {
             $ch = curl_init();

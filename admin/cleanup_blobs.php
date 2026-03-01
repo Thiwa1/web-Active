@@ -4,7 +4,7 @@ require_once '../config/config.php';
 
 // Only Admin should run this
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Admin') {
-    die("Unauthorized. Admin access required.");
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>Error:</strong> " . htmlspecialchars("Unauthorized. Admin access required.") . " <a href='../login.php'>Login here</a></div>"; exit();
 }
 
 echo "<h2>Starting BLOB Cleanup (Freeing DB Space)...</h2>";
@@ -53,5 +53,5 @@ try {
 
 } catch (Exception $e) {
     $pdo->rollBack();
-    die("Error: " . $e->getMessage());
+    echo "<div style='color:red; padding:20px; border:1px solid red; font-family:sans-serif;'><strong>System Error:</strong> " . htmlspecialchars("Error: ") . " A database error occurred. <a href='dashboard.php'>Back to Dashboard</a></div>"; exit();
 }

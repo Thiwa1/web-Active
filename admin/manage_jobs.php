@@ -47,7 +47,7 @@ try {
     });
 
 } catch (PDOException $e) {
-    die("Database Error: " . $e->getMessage());
+    header("Location: dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
 }
 ?>
 
@@ -192,22 +192,22 @@ document.getElementById('jobSearch').addEventListener('keyup', function() {
 function confirmArchive(id, isPaid) {
     let msg = isPaid ? "CRITICAL: This is a PAID job. Are you sure you want to archive it?" : "Archive this job posting?";
     if(confirm(msg)) {
-        const form = document.createElement('form');
+        let form = document.createElement('form');
         form.method = 'POST';
         form.action = 'actions/delete_job.php';
 
-        const idInput = document.createElement('input');
+        let idInput = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'id';
         idInput.value = id;
-        form.appendChild(idInput);
 
-        const csrfInput = document.createElement('input');
+        let csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
         csrfInput.name = 'csrf_token';
         csrfInput.value = '<?= $_SESSION['csrf_token'] ?>';
-        form.appendChild(csrfInput);
 
+        form.appendChild(idInput);
+        form.appendChild(csrfInput);
         document.body.appendChild(form);
         form.submit();
     }

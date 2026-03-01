@@ -3,6 +3,10 @@ session_start();
 require_once '../../config/config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['user_type'] === 'Admin') {
+    if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+        die("Invalid CSRF token.");
+    }
+
     $employer_id = $_POST['employer_id'];
     $action = $_POST['action'];
     $admin_name = $_SESSION['full_name'] ?? 'System Admin';
@@ -22,6 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['user_type'] === 'Admin')
         header("Location: ../verify_recruiters.php?msg=" . urlencode($msg));
         exit();
     } catch (PDOException $e) {
-        die("Database Error: " . $e->getMessage());
+        header("Location: ../dashboard.php?error=" . urlencode("Database Error:  A database error occurred.")); exit();
     }
 }
