@@ -5,11 +5,11 @@
  */
 
 // 1. Database Credentials
-$host    = 'localhost';
-$db_name = 'tiptromr_vacancies';
-$db_user = 'tiptromr_srithiwankara';      // Change this for production
-$db_pass = '*BmVP#ALYAQ5';          // Change this for production
-$charset = 'utf8mb4';
+$host    = getenv('DB_HOST') ?: 'localhost';
+$db_name = getenv('DB_NAME') ?: 'tiptromr_vacancies';
+$db_user = getenv('DB_USER') ?: 'root';      // Default to root for local dev
+$db_pass = getenv('DB_PASS') ?: '';          // Default to empty for local dev
+$charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 // 2. Data Source Name
 $dsn = "mysql:host=$host;dbname=$db_name;charset=$charset";
