@@ -29,8 +29,11 @@ $extraCss = '<style>
     #recruiter_fields { display: none; }
     .grecaptcha-badge { visibility: hidden; } /* Optional: hide floating badge if you include branding elsewhere */
 </style>';
+
+require_once 'classes/ReCaptcha.php';
+$siteKey = ReCaptcha::getSiteKey();
 ?>
-<script src="https://www.google.com/recaptcha/api.js?render=6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php include 'layout/header.php'; ?>
 
 <div class="container py-5">
@@ -152,7 +155,7 @@ $extraCss = '<style>
 document.getElementById('regForm').addEventListener('submit', function(e) {
     e.preventDefault();
     grecaptcha.ready(function() {
-        grecaptcha.execute('6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_', {action: 'register'}).then(function(token) {
+        grecaptcha.execute('<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>', {action: 'register'}).then(function(token) {
             document.getElementById('recaptcha_token').value = token;
             document.getElementById('regForm').submit();
         });

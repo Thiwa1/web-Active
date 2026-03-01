@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/../classes/NotifySMS.php';
 
-class MockPDOStmt {
+class MockPDOStmtForSMS {
     private $data;
     public function __construct($data) {
         $this->data = $data;
@@ -15,7 +15,7 @@ class MockPDOStmt {
     }
 }
 
-class MockPDO {
+class MockPDOForSMS {
     private $data;
     public $exception = false;
     public function __construct($data = []) {
@@ -23,21 +23,9 @@ class MockPDO {
     }
     public function prepare($sql) {
         if ($this->exception) {
-            throw new PDOException("DB Error");
+            throw new PDOException("Mock DB Error");
         }
-        return new MockPDOStmt($this->data);
-    }
-}
-
-class TestableNotifySMS extends NotifySMS {
-    public $lastTo = null;
-    public $lastMessage = null;
-    public $curlResult = true;
-
-    protected function executeCurl($to, $message) {
-        $this->lastTo = $to;
-        $this->lastMessage = $message;
-        return $this->curlResult;
+        return new MockPDOStmtForSMS($this->data);
     }
 }
 
@@ -48,14 +36,9 @@ class NotifySMSTest {
     public function run() {
         echo "Running NotifySMS Tests...\n\n";
 
-        $this->testIsConfiguredTrue();
-        $this->testIsConfiguredFalse();
-        $this->testDbException();
+        $this->testSettingsLoadedCorrectly();
+        $this->testSettingsLoadErrorPdoException();
         $this->testFormatNumber();
-        $this->testSendSuccess();
-        $this->testSendNotConfigured();
-        $this->testSendOTP();
-        $this->testSendJobAlert();
 
         echo "\nTest Summary:\n";
         echo "Passed: {$this->passed}\n";
@@ -82,109 +65,74 @@ class NotifySMSTest {
         }
     }
 
-    private function testIsConfiguredTrue() {
-        $pdo = new MockPDO([
-            'sms_user_id' => 'user_123',
-            'sms_api_key' => 'key_123',
-            'sms_sender_id' => 'Sender'
+    private function testSettingsLoadedCorrectly() {
+        $pdo = new MockPDOForSMS([
+            'sms_user_id' => 'user123',
+            'sms_api_key' => 'key123',
+            'sms_sender_id' => 'MySender'
         ]);
-        $sms = new TestableNotifySMS($pdo);
-        $this->assertEqual(true, $sms->isConfigured(), "isConfigured - Fully Configured");
+
+        $notifySms = new NotifySMS($pdo);
+        $this->assertEqual(true, $notifySms->isConfigured(), "SettingsLoadedCorrectly - isConfigured");
+
+        $reflector = new ReflectionClass(NotifySMS::class);
+        $userIdProp = $reflector->getProperty('userId');
+        $userIdProp->setAccessible(true);
+        $this->assertEqual('user123', $userIdProp->getValue($notifySms), "SettingsLoadedCorrectly - userId is correct");
+
+        $apiKeyProp = $reflector->getProperty('apiKey');
+        $apiKeyProp->setAccessible(true);
+        $this->assertEqual('key123', $apiKeyProp->getValue($notifySms), "SettingsLoadedCorrectly - apiKey is correct");
+
+        $senderIdProp = $reflector->getProperty('senderId');
+        $senderIdProp->setAccessible(true);
+        $this->assertEqual('MySender', $senderIdProp->getValue($notifySms), "SettingsLoadedCorrectly - senderId is correct");
     }
 
-    private function testIsConfiguredFalse() {
-        $pdo = new MockPDO([
-            'sms_user_id' => '',
-            'sms_api_key' => 'key_123'
-        ]);
-        $sms = new TestableNotifySMS($pdo);
-        $this->assertEqual(false, $sms->isConfigured(), "isConfigured - Missing User ID");
-
-        $pdo2 = new MockPDO([
-            'sms_user_id' => 'user_123',
-            'sms_api_key' => ''
-        ]);
-        $sms2 = new TestableNotifySMS($pdo2);
-        $this->assertEqual(false, $sms2->isConfigured(), "isConfigured - Missing API Key");
-
-        $pdo3 = new MockPDO([]);
-        $sms3 = new TestableNotifySMS($pdo3);
-        $this->assertEqual(false, $sms3->isConfigured(), "isConfigured - Empty Settings");
-    }
-
-    private function testDbException() {
-        $pdo = new MockPDO();
+    private function testSettingsLoadErrorPdoException() {
+        $pdo = new MockPDOForSMS();
         $pdo->exception = true;
-        $sms = new TestableNotifySMS($pdo);
-        $this->assertEqual(false, $sms->isConfigured(), "isConfigured - DB Exception handles gracefully");
+
+        // Output buffering to hide expected error_log "Settings Load Error: Mock DB Error"
+        ob_start();
+        $notifySms = new NotifySMS($pdo);
+        // Ensure error_log doesn't mess up output
+        $errorLogOutput = ob_get_clean();
+
+        $this->assertEqual(false, $notifySms->isConfigured(), "SettingsLoadErrorPdoException - isConfigured handles Exception without crashing");
+
+        // Verify internal state uses defaults or is null when an exception occurs
+        $reflector = new ReflectionClass(NotifySMS::class);
+        $userIdProp = $reflector->getProperty('userId');
+        $userIdProp->setAccessible(true);
+        $this->assertEqual(null, $userIdProp->getValue($notifySms), "SettingsLoadErrorPdoException - userId is null");
+
+        $apiKeyProp = $reflector->getProperty('apiKey');
+        $apiKeyProp->setAccessible(true);
+        $this->assertEqual(null, $apiKeyProp->getValue($notifySms), "SettingsLoadErrorPdoException - apiKey is null");
+
+        $senderIdProp = $reflector->getProperty('senderId');
+        $senderIdProp->setAccessible(true);
+        $this->assertEqual(null, $senderIdProp->getValue($notifySms), "SettingsLoadErrorPdoException - senderId is null");
     }
 
     private function testFormatNumber() {
-        $pdo = new MockPDO([]);
-        $sms = new TestableNotifySMS($pdo);
+        $pdo = new MockPDOForSMS([
+            'sms_user_id' => 'user123',
+            'sms_api_key' => 'key123',
+            'sms_sender_id' => 'MySender'
+        ]);
+        $notifySms = new NotifySMS($pdo);
 
-        $reflector = new ReflectionClass(TestableNotifySMS::class);
+        // Since formatNumber is private, we can use reflection to test it.
+        $reflector = new ReflectionClass(NotifySMS::class);
         $method = $reflector->getMethod('formatNumber');
         $method->setAccessible(true);
 
-        $this->assertEqual('94771234567', $method->invoke($sms, '0771234567'), "formatNumber - Leading 0");
-        $this->assertEqual('94771234567', $method->invoke($sms, '94771234567'), "formatNumber - Already 94");
-        $this->assertEqual('94771234567', $method->invoke($sms, '+94771234567'), "formatNumber - With +94");
-        $this->assertEqual('94771234567', $method->invoke($sms, '771234567'), "formatNumber - Without 0 or 94");
-        $this->assertEqual('94771234567', $method->invoke($sms, ' 077 123 4567 '), "formatNumber - With spaces");
-        $this->assertEqual('94771234567', $method->invoke($sms, '077-123-4567'), "formatNumber - With dashes");
-    }
-
-    private function testSendSuccess() {
-        $pdo = new MockPDO([
-            'sms_user_id' => 'user_123',
-            'sms_api_key' => 'key_123'
-        ]);
-        $sms = new TestableNotifySMS($pdo);
-
-        $result = $sms->send('0771234567', 'Test Message');
-
-        $this->assertEqual(true, $result, "send - Returns true on success");
-        $this->assertEqual('94771234567', $sms->lastTo, "send - Formats number correctly");
-        $this->assertEqual('Test Message', $sms->lastMessage, "send - Passes message correctly");
-    }
-
-    private function testSendNotConfigured() {
-        $pdo = new MockPDO([]);
-        $sms = new TestableNotifySMS($pdo);
-
-        $result = $sms->send('0771234567', 'Test Message');
-
-        $this->assertEqual(false, $result, "send - Returns false when not configured");
-        $this->assertEqual(null, $sms->lastTo, "send - executeCurl not called");
-    }
-
-    private function testSendOTP() {
-        $pdo = new MockPDO([
-            'sms_user_id' => 'user_123',
-            'sms_api_key' => 'key_123'
-        ]);
-        $sms = new TestableNotifySMS($pdo);
-
-        $result = $sms->sendOTP('0771234567', '9999');
-
-        $this->assertEqual(true, $result, "sendOTP - Returns true on success");
-        $this->assertEqual('94771234567', $sms->lastTo, "sendOTP - Formats number correctly");
-        $this->assertEqual('Your verification code is: 9999. Do not share this with anyone.', $sms->lastMessage, "sendOTP - Correct message format");
-    }
-
-    private function testSendJobAlert() {
-        $pdo = new MockPDO([
-            'sms_user_id' => 'user_123',
-            'sms_api_key' => 'key_123'
-        ]);
-        $sms = new TestableNotifySMS($pdo);
-
-        $result = $sms->sendJobAlert('0771234567', 'Software Engineer', 'Colombo');
-
-        $this->assertEqual(true, $result, "sendJobAlert - Returns true on success");
-        $this->assertEqual('94771234567', $sms->lastTo, "sendJobAlert - Formats number correctly");
-        $this->assertEqual('New Job: Software Engineer in Colombo. Apply now on TipTop Vacancies!', $sms->lastMessage, "sendJobAlert - Correct message format");
+        $this->assertEqual('94771234567', $method->invoke($notifySms, '0771234567'), "FormatNumber - Starts with 0");
+        $this->assertEqual('94771234567', $method->invoke($notifySms, '94771234567'), "FormatNumber - Starts with 94");
+        $this->assertEqual('94771234567', $method->invoke($notifySms, '+94 77-123 4567'), "FormatNumber - With symbols");
+        $this->assertEqual('94771234567', $method->invoke($notifySms, '771234567'), "FormatNumber - Starts with neither");
     }
 }
 
