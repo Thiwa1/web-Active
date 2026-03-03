@@ -120,6 +120,7 @@ class ReCaptchaTest {
     }
 
     private function testGetSiteKey() {
+        putenv('RECAPTCHA_SITE_KEY=6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_');
         $this->assertEqual('6Le5oFQsAAAAAHU-Fy3CB9jGJqJq6j51omSnCh0_', MockReCaptcha::getSiteKey(), "getSiteKey - Returns correct key");
     }
 }
