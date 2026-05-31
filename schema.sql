@@ -550,11 +550,11 @@ COLLATE = utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS `tiptromr_vacancies`.`Compan_details` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `company_name` VARCHAR(255) NULL,
-  `Compan_detailscol` VARCHAR(255) NULL,
+  `Compan_detailscol` TEXT NULL,
   `addres1` VARCHAR(255) NULL,
   `addres2` VARCHAR(255) NULL,
   `addres3` VARCHAR(255) NULL,
-  `TP_No` VARCHAR(255) NULL,
+  `TP_No` VARCHAR(100) NULL,
   `logo` MEDIUMBLOB NULL,
   `logo_path` VARCHAR(255) NULL DEFAULT NULL,
   PRIMARY KEY (`id`))

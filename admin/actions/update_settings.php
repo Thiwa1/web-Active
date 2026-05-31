@@ -29,64 +29,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $extra = $_POST['Compan_detailscol'];
             $logo_path = null;
 
+            // Validate string lengths based on schema definition
+            $max_length_255 = 255;
+            $max_length_100 = 100;
+            $max_length_text = 65535; // Maximum length of a standard TEXT column
+
+            if (mb_strlen($name) > $max_length_255 ||
+                mb_strlen($a1) > $max_length_255 ||
+                mb_strlen($a2) > $max_length_255 ||
+                mb_strlen($a3) > $max_length_255) {
+                header("Location: ../dashboard.php?error=" . urlencode("Input Error: Company Name or Address fields cannot exceed $max_length_255 characters."));
+                exit();
+            }
+
+            if (mb_strlen($tp) > $max_length_100) {
+                header("Location: ../dashboard.php?error=" . urlencode("Input Error: Telephone Number cannot exceed $max_length_100 characters."));
+                exit();
+            }
+
+            if (mb_strlen($extra) > $max_length_text) {
+                header("Location: ../dashboard.php?error=" . urlencode("Input Error: Company Details are too long."));
+                exit();
+            }
+
             if (!empty($_FILES['logo']['tmp_name'])) {
                 try {
                     $logo_path = uploadImage($_FILES['logo'], '../../uploads/system/');
                 } catch (Exception $e) { header("Location: ../dashboard.php?error=" . urlencode("Image Error:  A database error occurred.")); exit(); }
             }
 
-            // Retry logic for schema updates
-            $maxRetries = 1;
-            $attempt = 0;
-            $success = false;
+            // Check if row exists
+            $exists = $pdo->query("SELECT id FROM Compan_details LIMIT 1")->fetch();
 
-            while ($attempt <= $maxRetries && !$success) {
-                try {
-                    $attempt++;
-                    
-                    // Check if row exists
-                    $exists = $pdo->query("SELECT id FROM Compan_details LIMIT 1")->fetch();
+            if ($exists) {
+                // UPDATE
+                $sql = "UPDATE Compan_details SET company_name=?, TP_No=?, addres1=?, addres2=?, addres3=?, Compan_detailscol=?";
+                $params = [$name, $tp, $a1, $a2, $a3, $extra];
 
-                    if ($exists) {
-                        // UPDATE
-                        $sql = "UPDATE Compan_details SET company_name=?, TP_No=?, addres1=?, addres2=?, addres3=?, Compan_detailscol=?";
-                        $params = [$name, $tp, $a1, $a2, $a3, $extra];
-                        
-                        if ($logo_path) {
-                            $sql .= ", logo_path=?";
-                            $params[] = $logo_path;
-                        }
-                        
-                        $sql .= " WHERE id=?";
-                        $params[] = $exists['id'];
-                        
-                        $pdo->prepare($sql)->execute($params);
-                    } else {
-                        // INSERT
-                        $sql = "INSERT INTO Compan_details (company_name, TP_No, addres1, addres2, addres3, Compan_detailscol, logo_path) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                        $params = [$name, $tp, $a1, $a2, $a3, $extra, $logo_path];
-                        $pdo->prepare($sql)->execute($params);
-                    }
-                    
-                    $success = true;
-
-                } catch (PDOException $e) {
-                    // Check for Data Too Long (Truncation) error
-                    if (($e->getCode() == '22001' || strpos($e->getMessage(), 'too long') !== false) && $attempt <= $maxRetries) {
-                        // FIX: Alter table to widen columns
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY company_name VARCHAR(255)");
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY TP_No VARCHAR(100)");
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY addres1 VARCHAR(255)");
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY addres2 VARCHAR(255)");
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY addres3 VARCHAR(255)");
-                        $pdo->exec("ALTER TABLE Compan_details MODIFY Compan_detailscol TEXT");
-                        
-                        // Loop will retry the insert/update
-                        continue;
-                    } else {
-                        throw $e; // Re-throw other errors
-                    }
+                if ($logo_path) {
+                    $sql .= ", logo_path=?";
+                    $params[] = $logo_path;
                 }
+
+                $sql .= " WHERE id=?";
+                $params[] = $exists['id'];
+
+                $pdo->prepare($sql)->execute($params);
+            } else {
+                // INSERT
+                $sql = "INSERT INTO Compan_details (company_name, TP_No, addres1, addres2, addres3, Compan_detailscol, logo_path) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $params = [$name, $tp, $a1, $a2, $a3, $extra, $logo_path];
+                $pdo->prepare($sql)->execute($params);
             }
 
             header("Location: ../settings.php?status=updated#pane-general");

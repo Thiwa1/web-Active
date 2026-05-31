@@ -4,7 +4,7 @@ class ReCaptcha {
     const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
     public static function getSiteKey() {
-        return getenv('RECAPTCHA_SITE_KEY') ?: '';
+        return defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : (getenv('RECAPTCHA_SITE_KEY') ?: '');
     }
 
     private static function getSecretKey() {
@@ -80,9 +80,5 @@ class ReCaptcha {
         curl_close($ch);
 
         return $response;
-    }
-
-    public static function getSiteKey() {
-        return defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : (getenv('RECAPTCHA_SITE_KEY') ?: '');
     }
 }
