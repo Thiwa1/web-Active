@@ -1,151 +1,183 @@
-// City Dropdown Logic
-const cityBtn = document.getElementById('cityBtn');
-const cityMenu = document.getElementById('cityMenu');
-const citySearch = document.getElementById('citySearch');
-if (cityBtn) {
-    cityBtn.onclick = (e) => {
-        e.stopPropagation();
-        cityMenu.classList.toggle('show');
-        cityBtn.classList.toggle('active');
-    };
-    document.onclick = (e) => {
-        if(!cityMenu.contains(e.target) && e.target !== cityBtn) {
-            cityMenu.classList.remove('show');
-            cityBtn.classList.remove('active');
+/* Pro Plus Career — main.js */
+(function () {
+    'use strict';
+
+    // ── Helpers ──────────────────────────────────────────────
+    function basePath() {
+        // Detect if we are inside a sub-directory
+        const path = window.location.pathname;
+        if (/\/(admin|employer|employee)\//.test(path)) return '../';
+        return './';
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr || dateStr === '0000-00-00') return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function logoHtml(job, cssClass) {
+        if (job.logo_path) {
+            return `<img src="${basePath()}${job.logo_path.replace(/^(\.\.\/|\.\/)/,'')}" class="${cssClass}" onerror="this.style.display='none'">`;
         }
-    };
-}
-if (citySearch) {
-    citySearch.onkeyup = function() {
-        let val = this.value.toLowerCase();
-        document.querySelectorAll('.city-item').forEach(i => {
-            i.style.display = i.innerText.toLowerCase().includes(val) ? "block" : "none";
+        const letter = (job.Company || 'J').charAt(0).toUpperCase();
+        return `<div class="job-card-initial">${letter}</div>`;
+    }
+
+    // ── City Dropdown ─────────────────────────────────────────
+    const cityBtn  = document.getElementById('cityBtn');
+    const cityMenu = document.getElementById('cityMenu');
+    const citySearch = document.getElementById('citySearch');
+    const cityContent = document.getElementById('cityContent');
+    const cityLabel = document.getElementById('cityLabel');
+    const districtSelect = document.getElementById('districtSelect');
+    let selectedCities = [];
+
+    if (cityBtn && cityMenu) {
+        cityBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            cityMenu.classList.toggle('show');
         });
-    };
-}
-// Load Cities based on District
-if (document.getElementById('districtSelect')) {
-    document.getElementById('districtSelect').onchange = async function() {
-        const dId = this.value;
-        const content = document.getElementById('cityContent');
 
-        if(!dId) {
-            content.innerHTML = '<span class="text-muted"><i class="fas fa-info-circle me-2"></i>Select a district first</span>';
-            return;
-        }
+        document.addEventListener('click', function (e) {
+            if (!cityMenu.contains(e.target) && e.target !== cityBtn) {
+                cityMenu.classList.remove('show');
+            }
+        });
+    }
 
-        content.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Loading cities...</span>';
+    if (districtSelect) {
+        districtSelect.addEventListener('change', function () {
+            const districtId = this.value;
+            selectedCities = [];
+            updateCityLabel();
 
-        try {
-            const res = await fetch(`get_cities.php?district_id=${dId}`);
-            const cities = await res.json();
-            if(cities.length === 0) {
-                content.innerHTML = '<span class="text-muted"><i class="fas fa-exclamation-circle me-2"></i>No cities found</span>';
+            if (!districtId) {
+                cityContent.innerHTML = '<span class="text-muted small">Select a district first</span>';
                 return;
             }
-            content.innerHTML = cities.map(c => `
-                <div class="city-item">
-                    <input type="checkbox" name="cities[]" value="${c.City}" class="city-check me-2" id="c_${c.id}">
-                    <label for="c_${c.id}">${c.City}</label>
-                </div>
-            `).join('');
-            // Add change handlers
-            document.querySelectorAll('.city-check').forEach(box => {
-                box.onchange = () => {
-                    const count = document.querySelectorAll('.city-check:checked').length;
-                    document.getElementById('cityLabel').innerText = count > 0 ? `${count} City Selected` : "Select cities...";
-                    fetchJobs();
-                };
+
+            cityContent.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+            fetch(`${basePath()}get_cities.php?district_id=${districtId}`)
+                .then(r => r.json())
+                .then(cities => {
+                    if (!cities.length) {
+                        cityContent.innerHTML = '<span class="text-muted small">No cities found</span>';
+                        return;
+                    }
+                    cityContent.innerHTML = cities.map(c => `
+                        <label class="city-checkbox">
+                            <input type="checkbox" value="${c.City}" class="city-cb">
+                            <span>${c.City}</span>
+                        </label>`).join('');
+
+                    cityContent.querySelectorAll('.city-cb').forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            if (this.checked) {
+                                selectedCities.push(this.value);
+                            } else {
+                                selectedCities = selectedCities.filter(v => v !== this.value);
+                            }
+                            updateCityLabel();
+                            loadJobs();
+                        });
+                    });
+                })
+                .catch(() => { cityContent.innerHTML = '<span class="text-muted small">Error loading cities</span>'; });
+        });
+    }
+
+    if (citySearch) {
+        citySearch.addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            cityContent.querySelectorAll('.city-checkbox').forEach(el => {
+                el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
             });
-        } catch(error) {
-            content.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error loading cities</span>';
-            console.error('Error loading cities:', error);
-        }
-        fetchJobs();
-    };
-}
-// AJAX Job Fetching
-async function fetchJobs() {
-    const loader = document.getElementById('loader');
+        });
+    }
+
+    function updateCityLabel() {
+        if (!cityLabel) return;
+        cityLabel.textContent = selectedCities.length
+            ? selectedCities.slice(0, 2).join(', ') + (selectedCities.length > 2 ? ` +${selectedCities.length - 2}` : '')
+            : 'Select cities...';
+        cityLabel.className = selectedCities.length ? 'text-dark' : 'text-muted';
+    }
+
+    // ── Job Loading ───────────────────────────────────────────
+    const searchForm    = document.getElementById('searchForm');
     const desktopResults = document.getElementById('desktopResults');
-    const mobileResults = document.getElementById('mobileResults');
+    const mobileResults  = document.getElementById('mobileResults');
+    const loader         = document.getElementById('loader');
+    const jobCount       = document.getElementById('jobCount');
+    const hiddenCat      = document.getElementById('hiddenCat');
 
-    if (loader) loader.classList.remove('d-none');
-
-    try {
-        const searchForm = document.getElementById('searchForm');
-        if (!searchForm) return;
-        const formData = new FormData(searchForm);
-        const params = new URLSearchParams(formData).toString();
-
-        const res = await fetch('fetch_jobs.php?' + params);
-        const rawText = await res.text();
-
-        // Split the response using our custom marker
-        const parts = rawText.split('###SPLIT###');
-
-        if (parts.length === 2) {
-            if (desktopResults) desktopResults.innerHTML = parts[0];
-            if (mobileResults) mobileResults.innerHTML = parts[1];
-
-            // Update the job count (count <tr> rows)
-            const count = desktopResults ? desktopResults.querySelectorAll('tr').length : 0;
-            const actualCount = desktopResults && desktopResults.innerText.includes("No Jobs Found") ? 0 : count;
-            const countEl = document.getElementById('jobCount');
-            if (countEl) countEl.textContent = actualCount;
-        }
-
-    } catch(error) {
-        console.error('Fetch error:', error);
-        if (desktopResults) desktopResults.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading data</td></tr>';
-        if (mobileResults) mobileResults.innerHTML = '<div class="mobile-no-jobs"><i class="fas fa-exclamation-circle"></i><h4>Error Loading Jobs</h4><p>Please try again later</p></div>';
-    } finally {
-        if (loader) loader.classList.add('d-none');
+    function buildUrl() {
+        const params = new URLSearchParams();
+        const kw = document.getElementById('keyword');
+        if (kw && kw.value.trim()) params.set('q', kw.value.trim());
+        if (districtSelect && districtSelect.value) params.set('district_id', districtSelect.value);
+        if (hiddenCat && hiddenCat.value) params.set('category', hiddenCat.value);
+        selectedCities.forEach(c => params.append('cities[]', c));
+        return `${basePath()}fetch_jobs.php?${params.toString()}`;
     }
-}
-// Category Filter
-function setupCategoryLinks() {
-    const links = document.querySelectorAll('.cat-link');
-    links.forEach(link => {
-        link.onclick = function(e) {
-            e.preventDefault();
 
-            // Update active state
-            const val = this.dataset.val;
-            links.forEach(a => {
-                if(a.dataset.val === val) a.classList.add('active');
-                else a.classList.remove('active');
+    function loadJobs() {
+        if (!desktopResults && !mobileResults) return;
+        if (loader) loader.classList.remove('d-none');
+
+        fetch(buildUrl())
+            .then(r => r.text())
+            .then(raw => {
+                if (loader) loader.classList.add('d-none');
+                const parts = raw.split('###SPLIT###');
+                const desktopHtml = parts[0] || '';
+                const mobileHtml  = parts[1] || '';
+
+                if (desktopResults) desktopResults.innerHTML = desktopHtml;
+                if (mobileResults)  mobileResults.innerHTML  = mobileHtml;
+
+                // Update count badge
+                const rows = desktopResults ? desktopResults.querySelectorAll('tr').length : 0;
+                if (jobCount) jobCount.textContent = rows;
+            })
+            .catch(() => {
+                if (loader) loader.classList.add('d-none');
+                const msg = '<tr><td colspan="8" class="text-center text-muted py-5">Failed to load jobs. Please try again.</td></tr>';
+                if (desktopResults) desktopResults.innerHTML = msg;
             });
-            const hiddenCat = document.getElementById('hiddenCat');
-            if (hiddenCat) hiddenCat.value = val;
-            fetchJobs();
-            // Close offcanvas if open (mobile)
-            const offcanvasEl = document.getElementById('filterOffcanvas');
-            if (offcanvasEl) {
-                // Assuming bootstrap is loaded globally
-                const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                if (bsOffcanvas) bsOffcanvas.hide();
-            }
-        };
-    });
-}
-setupCategoryLinks();
-// Search Form Submit
-if (document.getElementById('searchForm')) {
-    document.getElementById('searchForm').onsubmit = function(e) {
-        e.preventDefault();
-        fetchJobs();
-    };
-}
-// Load jobs on page load
-window.addEventListener('load', fetchJobs);
-document.addEventListener('click', function(e) {
-    const btn = e.target.closest('.view-job');
-    if (btn) {
-        e.preventDefault();
-        const jobId = btn.getAttribute('data-id');
-        if (jobId) {
-            window.location.href = 'job_details.php?id=' + jobId;
-        }
     }
-});
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            loadJobs();
+        });
+    }
+
+    // ── Category Filter ───────────────────────────────────────
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest('.cat-link');
+        if (!link) return;
+
+        document.querySelectorAll('.cat-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+
+        if (hiddenCat) hiddenCat.value = link.dataset.val || '';
+        loadJobs();
+
+        // close mobile offcanvas if open
+        const offcanvas = document.getElementById('filterOffcanvas');
+        if (offcanvas && offcanvas.classList.contains('show')) {
+            const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvas);
+            if (bsOffcanvas) bsOffcanvas.hide();
+        }
+    });
+
+    // ── Initial Load ──────────────────────────────────────────
+    if (desktopResults || mobileResults) {
+        loadJobs();
+    }
+
+})();

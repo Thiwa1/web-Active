@@ -65,7 +65,14 @@ if ($currentScript == 'paper_ads.php') {
     <meta property="og:image" content="<?= str_replace('./', 'https://tiptopvacancies.com/', $logoSrc) ?>">
 
     <!-- Favicon -->
-    <link rel="icon" href="<?= $basePath ?>uploads/system/favicon.png" type="image/png">
+    <?php
+    $faviconFile = __DIR__ . '/../uploads/system/favicon.png';
+    if (file_exists($faviconFile)):
+    ?>
+        <link rel="icon" href="<?= $basePath ?>uploads/system/favicon.png" type="image/png">
+    <?php else: ?>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text y='.9em' font-size='70' x='15' fill='white'>J</text></svg>">
+    <?php endif; ?>
 
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
