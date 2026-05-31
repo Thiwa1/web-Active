@@ -6,9 +6,9 @@
 
 // 1. Database Credentials
 $host    = getenv('DB_HOST') ?: 'localhost';
-$db_name = getenv('DB_NAME') ?: 'tiptromr_vacancies';
-$db_user = getenv('DB_USER') ?: 'root';      // Default to root for local dev
-$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''; // Support empty password
+$db_name = getenv('DB_NAME') ?: 'suwixvkn_vacancies';
+$db_user = getenv('DB_USER') ?: 'suwixvkn_suwixvkn';
+$db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'Pulasthi21219125';
 $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 // SMTP Configuration
@@ -44,10 +44,5 @@ try {
     // In production, log the error to a file instead of echoing it
     error_log("Database connection failed: " . $e->getMessage());
     exit("A system error occurred. Please try again later.");
-    exit("A database error occurred. Please try again later.");
-    die("A secure connection error occurred. Please try again later.");
-    exit("Database connection failed. Please try again later.");
-    die("A database connection error occurred. Please try again later.");
-    die("Database connection failed. Please try again later.");
 }
 ?>
