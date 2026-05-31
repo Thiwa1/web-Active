@@ -1,8 +1,8 @@
 <?php
+session_start();
 require_once 'config/config.php';
 require_once 'classes/GoogleAuth.php';
 require_once 'classes/ReCaptcha.php';
-session_start();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
