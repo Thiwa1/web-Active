@@ -39,11 +39,25 @@ try {
     $canDirectApply = $globalDirect || $isWhitelisted;
     $canWhatsAppApply = $globalWhatsapp || $isWhitelisted;
 
-} catch (PDOException $e) { die("Error: " . $e->getMessage()); }
+} catch (PDOException $e) {
+    error_log("job_details.php DB error: " . $e->getMessage());
+    die("Something went wrong. Please try again later.");
+}
 
 function render_html($data) {
     if (empty($data)) return '';
-    return html_entity_decode(html_entity_decode($data, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
+    $purifierPath = __DIR__ . '/vendor/htmlpurifier/library/HTMLPurifier.auto.php';
+    if (file_exists($purifierPath)) {
+        require_once $purifierPath;
+        static $purifier = null;
+        if (!$purifier) {
+            $config = HTMLPurifier_Config::createDefault();
+            $purifier = new HTMLPurifier($config);
+        }
+        return $purifier->purify($data);
+    }
+    // Fallback: strip all tags if HTMLPurifier unavailable
+    return nl2br(htmlspecialchars(strip_tags($data), ENT_QUOTES, 'UTF-8'));
 }
 ?>
 

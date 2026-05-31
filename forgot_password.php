@@ -63,7 +63,7 @@ $success = $_GET['success'] ?? '';
 
                     <form action="actions/send_otp.php" method="POST">
                         <div class="mb-4">
-                            <label class="form-label fw-600 small">Email Address</label>
+                            <label class="form-label fw-semibold small">Email Address</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                                 <input type="email" name="email" class="form-control" placeholder="name@company.com" required autofocus>
@@ -104,9 +104,11 @@ function toggleChannel() {
         channelInput.value = 'sms';
         toggleLink.innerText = "Prefer Email? Send via Email";
         label.innerText = "Mobile Number";
-        input.type = "text";
+        input.type = "tel";
         input.name = "mobile_number";
         input.placeholder = "07XXXXXXXX";
+        input.pattern = "0[0-9]{9}";
+        input.setAttribute('title', 'Enter a valid 10-digit mobile number starting with 0');
         icon.className = "fas fa-phone";
     } else {
         // Switch to Email Mode
@@ -116,6 +118,8 @@ function toggleChannel() {
         input.type = "email";
         input.name = "email";
         input.placeholder = "name@company.com";
+        input.removeAttribute('pattern');
+        input.removeAttribute('title');
         icon.className = "fas fa-envelope";
     }
 }

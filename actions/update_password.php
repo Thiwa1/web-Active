@@ -6,6 +6,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: ../reset_password.php"); exit();
 }
 
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
+    header("Location: ../reset_password.php?error=Security+token+mismatch.+Please+try+again.");
+    exit();
+}
+
 $pass = $_POST['password'];
 $confirm = $_POST['confirm_password'];
 $user_id = $_SESSION['reset_user_id'] ?? 0;

@@ -6,6 +6,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Candidate') {
     header("Location: login.php?msg=login_required"); exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $job_id = $_GET['job_id'] ?? null;
 $user_id = $_SESSION['user_id'];
 
@@ -40,7 +44,10 @@ try {
     $check->execute([$job_id, $seeker['seeker_id']]);
     $already_applied = $check->fetch();
 
-} catch (PDOException $e) { die("System Error: " . $e->getMessage()); }
+} catch (PDOException $e) {
+    error_log("apply.php DB error: " . $e->getMessage());
+    die("Something went wrong. Please try again later.");
+}
 ?>
 
 <!DOCTYPE html>
@@ -90,6 +97,7 @@ try {
                         </div>
 
                         <form action="actions/process_application.php" method="POST">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                             <input type="hidden" name="job_ad_link" value="<?= $job_id ?>">
                             <input type="hidden" name="seeker_id" value="<?= $seeker['seeker_id'] ?>">
 

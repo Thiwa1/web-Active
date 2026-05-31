@@ -11,6 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    // CSRF Protection
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
+        header("Location: ../apply.php?error=Security+token+mismatch.+Please+try+again.");
+        exit();
+    }
+
     // Use filtering to sanitize inputs
     // Assuming apply.php now sends job_ad_link
     $job_ad_link = filter_var($_POST['job_ad_link'], FILTER_VALIDATE_INT);

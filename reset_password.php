@@ -6,6 +6,10 @@ if (!isset($_SESSION['reset_user_id'])) {
     header("Location: login.php"); exit();
 }
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $error = $_GET['error'] ?? '';
 ?>
 <!DOCTYPE html>
@@ -57,15 +61,16 @@ $error = $_GET['error'] ?? '';
                     <?php endif; ?>
 
                     <form action="actions/update_password.php" method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                         <div class="mb-3">
-                            <label class="form-label fw-600 small">New Password</label>
+                            <label class="form-label fw-semibold small">New Password</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-key"></i></span>
                                 <input type="password" name="password" class="form-control" placeholder="••••••••" required minlength="6">
                             </div>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label fw-600 small">Confirm Password</label>
+                            <label class="form-label fw-semibold small">Confirm Password</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-check-double"></i></span>
                                 <input type="password" name="confirm_password" class="form-control" placeholder="••••••••" required>

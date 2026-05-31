@@ -83,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log Admin Logins (PaperAdmin & Admin & Promoted Users)
                 $role = strtolower(trim($user['user_type']));
                 if ($role === 'paperadmin' || $role === 'admin' || $_SESSION['is_paper_admin'] === 1) {
-                    $ip = $_SERVER['REMOTE_ADDR'];
+                    $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+                    $ip = filter_var(trim(explode(',', $rawIp)[0]), FILTER_VALIDATE_IP) ?: '0.0.0.0';
                     try {
                         $pdo->prepare("INSERT INTO admin_login_logs (user_id, ip_address) VALUES (?, ?)")->execute([$user['id'], $ip]);
                     } catch (PDOException $e) {
