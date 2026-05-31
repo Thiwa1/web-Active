@@ -69,7 +69,9 @@ if ($currentScript == 'paper_ads.php') {
     $faviconFile = __DIR__ . '/../uploads/system/favicon.png';
     if (file_exists($faviconFile)):
     ?>
-        <link rel="icon" href="<?= $basePath ?>uploads/system/favicon.png" type="image/png">
+        <link rel="icon" href="/uploads/system/favicon.png" type="image/png">
+        <link rel="shortcut icon" href="/uploads/system/favicon.png" type="image/png">
+        <link rel="apple-touch-icon" href="/uploads/system/favicon.png">
     <?php else: ?>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text y='.9em' font-size='70' x='15' fill='white'>J</text></svg>">
     <?php endif; ?>
