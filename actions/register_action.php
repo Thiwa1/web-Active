@@ -3,9 +3,9 @@
  * PRO PLUS REGISTRATION ENGINE - SCHEMA MATCHED VERSION
  */
 
+session_start();
 require_once '../config/config.php';
 require_once '../classes/ReCaptcha.php';
-session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
@@ -15,9 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    if (!isset($_POST['recaptcha_token']) || !ReCaptcha::verify($_POST['recaptcha_token'], 'register')) {
-        header("Location: ../register.php?error=Security check failed (reCAPTCHA). Please refresh and try again.");
-        exit();
+    $recaptchaSecret = defined('RECAPTCHA_SECRET_KEY') ? RECAPTCHA_SECRET_KEY : '';
+    if (!empty($recaptchaSecret)) {
+        if (!isset($_POST['recaptcha_token']) || !ReCaptcha::verify($_POST['recaptcha_token'], 'register')) {
+            header("Location: ../register.php?error=" . urlencode("Security check failed (reCAPTCHA). Please refresh and try again."));
+            exit();
+        }
     }
 
     // 1. Data Collection & Sanitization

@@ -155,9 +155,18 @@ $siteKey = ReCaptcha::getSiteKey();
 // reCAPTCHA Integration
 document.getElementById('regForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    var siteKey = '<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>';
+    if (!siteKey || typeof grecaptcha === 'undefined') {
+        // reCAPTCHA not configured — submit form directly
+        document.getElementById('regForm').submit();
+        return;
+    }
     grecaptcha.ready(function() {
-        grecaptcha.execute('<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>', {action: 'register'}).then(function(token) {
+        grecaptcha.execute(siteKey, {action: 'register'}).then(function(token) {
             document.getElementById('recaptcha_token').value = token;
+            document.getElementById('regForm').submit();
+        }).catch(function() {
+            // If reCAPTCHA fails for any reason, still submit
             document.getElementById('regForm').submit();
         });
     });

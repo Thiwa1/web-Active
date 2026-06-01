@@ -133,14 +133,16 @@ $siteKey = ReCaptcha::getSiteKey();
     // Inline login handler preserved for reCAPTCHA flow
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
-
-        // UI Helper handles the visual loader via global event listener
-        // But we need to handle the reCAPTCHA token injection manually here
-        
+        var siteKey = '<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>';
+        if (!siteKey || typeof grecaptcha === 'undefined') {
+            HTMLFormElement.prototype.submit.call(document.getElementById('loginForm'));
+            return;
+        }
         grecaptcha.ready(function() {
-            grecaptcha.execute('<?php echo htmlspecialchars($siteKey, ENT_QUOTES, 'UTF-8'); ?>', {action: 'login'}).then(function(token) {
+            grecaptcha.execute(siteKey, {action: 'login'}).then(function(token) {
                 document.getElementById('recaptcha_token').value = token;
-                // Native submit to bypass this listener again
+                HTMLFormElement.prototype.submit.call(document.getElementById('loginForm'));
+            }).catch(function() {
                 HTMLFormElement.prototype.submit.call(document.getElementById('loginForm'));
             });
         });

@@ -30,9 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Security token mismatch. Please try again.");
         }
 
-        // 3.5. reCAPTCHA Verification
-        if (!isset($_POST['recaptcha_token']) || !ReCaptcha::verify($_POST['recaptcha_token'], 'login')) {
-            throw new Exception("Security check failed (reCAPTCHA). Please try again.");
+        // 3.5. reCAPTCHA Verification (only if secret key is configured)
+        $recaptchaSecret = defined('RECAPTCHA_SECRET_KEY') ? RECAPTCHA_SECRET_KEY : '';
+        if (!empty($recaptchaSecret)) {
+            if (!isset($_POST['recaptcha_token']) || !ReCaptcha::verify($_POST['recaptcha_token'], 'login')) {
+                throw new Exception("Security check failed (reCAPTCHA). Please try again.");
+            }
         }
 
         // 4. Input Sanitization & Rate Limiting (Sanitization only here)
