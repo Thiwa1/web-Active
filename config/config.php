@@ -18,8 +18,8 @@ if (!defined('SMTP_USER')) define('SMTP_USER', getenv('SMTP_USER') ?: '');
 if (!defined('SMTP_PASS')) define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
 
 // ReCaptcha Configuration
-if (!defined('RECAPTCHA_SITE_KEY')) define('RECAPTCHA_SITE_KEY', getenv('RECAPTCHA_SITE_KEY') ?: '');
-if (!defined('RECAPTCHA_SECRET_KEY')) define('RECAPTCHA_SECRET_KEY', getenv('RECAPTCHA_SECRET_KEY') ?: '');
+if (!defined('RECAPTCHA_SITE_KEY')) define('RECAPTCHA_SITE_KEY', getenv('RECAPTCHA_SITE_KEY') ?: '6LdxdwctAAAAAJBSMN6rXASKixdINJbJL2RxzuEk');
+if (!defined('RECAPTCHA_SECRET_KEY')) define('RECAPTCHA_SECRET_KEY', getenv('RECAPTCHA_SECRET_KEY') ?: '6LdxdwctAAAAAFa9EWOpRfoHkvUgEELhJlgewTGJ');
 
 // 2. Data Source Name
 $dsn = "mysql:host=$host;dbname=$db_name;charset=$charset";
