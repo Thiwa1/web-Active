@@ -32,9 +32,6 @@ try {
     error_log($e->getMessage());
     $pendingRecruiters = $pendingPayments = $activeJobs = $monthlyRevenue = 0;
 }
-// Safe defaults if queries failed
-$currentPrice = $currentPrice ?? null;
-$migrationNeeded = $migrationNeeded ?? false;
 ?>
 
 <!DOCTYPE html>
@@ -199,8 +196,8 @@ $migrationNeeded = $migrationNeeded ?? false;
             <div class="card-pro h-100 bg-primary text-white border-0">
                 <h6 class="stat-label text-white opacity-75">Pricing Model</h6>
                 <div class="mt-4">
-                    <h1 class="fw-bold">Rs. <?= number_format($currentPrice['selling_price'] ?? 0, 0); ?></h1>
-                    <p class="opacity-75">Base Rate per <?= htmlspecialchars($currentPrice['Unit_of_add'] ?? 'N/A'); ?> Job Postings</p>
+                    <h1 class="fw-bold">Rs. <?= number_format($currentPrice['selling_price'], 0); ?></h1>
+                    <p class="opacity-75">Base Rate per <?= $currentPrice['Unit_of_add']; ?> Job Postings</p>
                 </div>
                 <div class="mt-auto pt-5">
                     <button class="btn btn-white w-100 fw-bold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#priceModal">Change Pricing</button>

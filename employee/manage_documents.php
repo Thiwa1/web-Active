@@ -5,7 +5,7 @@ require_once '../config/config.php';
 // 1. Configuration & Security
 $site_name = "JobQuest Pro"; 
 
-if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Employee') {
+if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'employee') {
     header("Location: ../login.php");
     exit();
 }

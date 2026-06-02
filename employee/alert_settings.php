@@ -4,7 +4,7 @@ require_once '../config/config.php';
 
 $site_name = "JobQuest Pro"; 
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Employee') {
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_type']) !== 'employee') {
     header("Location: ../login.php"); exit();
 }
 

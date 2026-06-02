@@ -4,7 +4,7 @@ require_once '../../config/config.php';
 require_once '../../config/upload_helper.php'; // Reuse helper if available, or write inline
 
 // 1. Security Check
-if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Employee') {
+if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'employee') {
     header("Location: ../../login.php");
     exit();
 }

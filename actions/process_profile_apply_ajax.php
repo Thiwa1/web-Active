@@ -4,7 +4,7 @@ require_once '../config/config.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'Employee') {
+if (!isset($_SESSION['user_type']) || strtolower($_SESSION['user_type']) !== 'employee') {
     echo json_encode(['success' => false, 'message' => 'Please login as an employee.']);
     exit();
 }

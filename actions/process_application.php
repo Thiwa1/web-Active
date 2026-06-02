@@ -6,7 +6,7 @@ require_once '../config/config.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // 1. Strict Security & Session Validation
-    if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Candidate') {
+    if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_type']) !== 'candidate') {
         header("Location: ../login.php?msg=unauthorized");
         exit();
     }

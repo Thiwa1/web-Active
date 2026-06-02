@@ -2,7 +2,7 @@
 session_start();
 require_once 'config/config.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'Candidate') {
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['user_type']) !== 'candidate') {
     header("Location: login.php?msg=login_required"); exit();
 }
 
