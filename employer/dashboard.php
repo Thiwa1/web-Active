@@ -22,9 +22,11 @@ try {
     $stmt->execute([$user_id]);
     $data = $stmt->fetch();
 
-    if (!$data) { 
-        header("Location: profile.php?msg=complete_profile"); 
-        exit(); 
+    if (!$data) {
+        // No profile yet — show dashboard and auto-open profile setup via JS
+        $needsProfile = true;
+    } else {
+        $needsProfile = false;
     }
 
 } catch (Exception $e) { 
@@ -37,7 +39,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | <?= htmlspecialchars($data['employer_name']) ?></title>
+    <title>Dashboard | <?= htmlspecialchars($data['employer_name'] ?? 'Employer') ?></title>
     
     <link rel="icon" href="../uploads/system/favicon.png" type="image/png">
 
@@ -281,8 +283,8 @@ try {
         <div class="welcome-banner">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h2 class="fw-bold mb-2">Hello, <?= explode(' ', $data['employer_name'])[0] ?>!</h2>
-                    <p class="mb-4 opacity-75">You have <?= $data['reg_apps'] + $data['guest_apps'] ?> new candidates to review today.</p>
+                    <h2 class="fw-bold mb-2">Hello, <?= explode(' ', $data['employer_name'] ?? 'Employer')[0] ?>!</h2>
+                    <p class="mb-4 opacity-75">You have <?= ($data['reg_apps'] ?? 0) + ($data['guest_apps'] ?? 0) ?> new candidates to review today.</p>
                     <button class="btn btn-primary-custom" onclick="loadContent('post_job')">
                         <i class="fas fa-plus me-2"></i> Post New Job
                     </button>
@@ -496,5 +498,31 @@ try {
 
 <?php include '../layout/ui_helpers.php'; ?>
 <?php include '../layout/chat_widget.php'; ?>
+
+<?php if (!empty($needsProfile)): ?>
+<div class="modal fade" id="completeProfileModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-body text-center p-5">
+                <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex p-4 mb-3">
+                    <i class="fas fa-user-edit fa-2x text-warning"></i>
+                </div>
+                <h4 class="fw-bold">Complete Your Profile</h4>
+                <p class="text-muted">Please complete your employer profile before using the dashboard.</p>
+                <button class="btn btn-primary rounded-pill px-4 fw-bold" onclick="bootstrap.Modal.getInstance(document.getElementById('completeProfileModal')).hide(); loadContent('profile_settings');">
+                    Set Up Profile <i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = new bootstrap.Modal(document.getElementById('completeProfileModal'));
+    modal.show();
+});
+</script>
+<?php endif; ?>
+
 </body>
 </html>
