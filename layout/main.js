@@ -156,6 +156,14 @@
         });
     }
 
+    // ── View Job Button ───────────────────────────────────────
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.view-job');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        if (id) window.location.href = `${basePath()}job_view.php?id=${id}`;
+    });
+
     // ── Category Filter ───────────────────────────────────────
     document.addEventListener('click', function (e) {
         const link = e.target.closest('.cat-link');
