@@ -12,10 +12,10 @@ $db_pass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : 'Pulasthi21219125';
 $charset = getenv('DB_CHARSET') ?: 'utf8mb4';
 
 // SMTP Configuration
-if (!defined('SMTP_HOST')) define('SMTP_HOST', getenv('SMTP_HOST') ?: '');
+if (!defined('SMTP_HOST')) define('SMTP_HOST', getenv('SMTP_HOST') ?: 'mail.tiptopvacancies.com');
 if (!defined('SMTP_PORT')) define('SMTP_PORT', getenv('SMTP_PORT') ?: 465);
-if (!defined('SMTP_USER')) define('SMTP_USER', getenv('SMTP_USER') ?: '');
-if (!defined('SMTP_PASS')) define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
+if (!defined('SMTP_USER')) define('SMTP_USER', getenv('SMTP_USER') ?: 'info@tiptopvacancies.com');
+if (!defined('SMTP_PASS')) define('SMTP_PASS', getenv('SMTP_PASS') ?: 'PkT]J_&HV3tT]EQ6');
 
 // ReCaptcha Configuration
 if (!defined('RECAPTCHA_SITE_KEY')) define('RECAPTCHA_SITE_KEY', getenv('RECAPTCHA_SITE_KEY') ?: '6LdxdwctAAAAAJBSMN6rXASKixdINJbJL2RxzuEk');
