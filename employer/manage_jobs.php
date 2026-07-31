@@ -60,19 +60,29 @@ try {
     $stmtJobs->execute([$emp_id]);
     $activeJobs = $stmtJobs->fetchAll(PDO::FETCH_ASSOC);
 
-    // 4.1 Fetch Deleted Vacancies
-    $sqlDel = "SELECT d.*, 
-            0 as reg_applicants,
-            0 as guest_applicants,
-            DATEDIFF(d.Closing_date, CURDATE()) as days_left,
-            1 as is_deleted
-            FROM advertising_table_deleted d
-            WHERE d.link_to_employer_profile = ? 
-            ORDER BY d.id DESC";
-            
-    $stmtDel = $pdo->prepare($sqlDel);
-    $stmtDel->execute([$emp_id]);
-    $deletedJobs = $stmtDel->fetchAll(PDO::FETCH_ASSOC);
+    // 4.1 Fetch Deleted Vacancies (table may not exist yet)
+    $deletedJobs = [];
+    try {
+        $sqlDel = "SELECT d.*,
+                0 as reg_applicants,
+                0 as guest_applicants,
+                DATEDIFF(d.Closing_date, CURDATE()) as days_left,
+                1 as is_deleted
+                FROM advertising_table_deleted d
+                WHERE d.link_to_employer_profile = ?
+                ORDER BY d.id DESC";
+        $stmtDel = $pdo->prepare($sqlDel);
+        $stmtDel->execute([$emp_id]);
+        $deletedJobs = $stmtDel->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), '42S02') !== false) {
+            // Table doesn't exist yet — create it silently
+            $pdo->exec("CREATE TABLE IF NOT EXISTS advertising_table_deleted LIKE advertising_table");
+            $pdo->exec("ALTER TABLE advertising_table_deleted ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL, ADD COLUMN IF NOT EXISTS deleted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        } else {
+            error_log("manage_jobs.php deleted fetch error: " . $e->getMessage());
+        }
+    }
 
     // Merge & Sort
     $jobs = array_merge($activeJobs, $deletedJobs);

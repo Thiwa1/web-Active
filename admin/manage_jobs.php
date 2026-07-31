@@ -29,14 +29,23 @@ try {
     
     $activeJobs = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
-    // 3. Fetch Deleted Jobs
-    $deletedSql = "SELECT d.*, e.employer_name, e.employer_logo, 
-                   0 as is_paid, 1 as is_deleted
-                   FROM advertising_table_deleted d
-                   JOIN employer_profile e ON d.link_to_employer_profile = e.id
-                   ORDER BY d.Opening_date DESC";
-    
-    $deletedJobs = $pdo->query($deletedSql)->fetchAll(PDO::FETCH_ASSOC);
+    // 3. Fetch Deleted Jobs (table may not exist yet)
+    $deletedJobs = [];
+    try {
+        $deletedSql = "SELECT d.*, e.employer_name, e.employer_logo,
+                       0 as is_paid, 1 as is_deleted
+                       FROM advertising_table_deleted d
+                       JOIN employer_profile e ON d.link_to_employer_profile = e.id
+                       ORDER BY d.Opening_date DESC";
+        $deletedJobs = $pdo->query($deletedSql)->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), '42S02') !== false) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS advertising_table_deleted LIKE advertising_table");
+            $pdo->exec("ALTER TABLE advertising_table_deleted ADD COLUMN IF NOT EXISTS deleted_by INT DEFAULT NULL, ADD COLUMN IF NOT EXISTS deleted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+        } else {
+            error_log("admin/manage_jobs.php deleted fetch error: " . $e->getMessage());
+        }
+    }
 
     // Merge and Sort
     $jobs = array_merge($activeJobs, $deletedJobs);
