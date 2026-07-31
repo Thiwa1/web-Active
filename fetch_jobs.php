@@ -131,7 +131,7 @@ try {
                 <td class="cell-date">' . $job['Opening_date'] . '</td>
                 <td class="cell-date text-danger">' . $job['Closing_date'] . '</td>
                 <td class="text-center">
-                    <button class="btn-view-excel view-job" data-id="' . $job['id'] . '">View</button>
+                    <button class="btn-view view-job" data-id="' . $job['id'] . '">View</button>
                 </td>
             </tr>';
 
